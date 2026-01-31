@@ -1,13 +1,13 @@
 from flask import Blueprint, jsonify
-from config.config import usuarios_collection, cursos_collection
+from models.models import User, Curso
 
 estadisticas_bp = Blueprint("estadisticas_bp", __name__)
 
 @estadisticas_bp.route("/estadisticas", methods=["GET"])
 def obtener_estadisticas():
     try:
-        total_usuarios = usuarios_collection.count_documents({})
-        total_cursos = cursos_collection.count_documents({})
+        total_usuarios = User.query.count()
+        total_cursos = Curso.query.count()
 
         return jsonify({
             "usuarios_registrados": total_usuarios,

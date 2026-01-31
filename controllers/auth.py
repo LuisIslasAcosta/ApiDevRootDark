@@ -1,27 +1,25 @@
-from config.config import usuarios_collection
+import base64
+from models.models import User
 from utils.hash_utils import verificar_contraseña
 from flask_jwt_extended import create_access_token
-import base64
 
 def validar_login(email, password):
-    usuario = usuarios_collection.find_one({"email": email})
-    if usuario and verificar_contraseña(usuario["password"], password):
-        access_token = create_access_token(identity=str(usuario["_id"]))
+    usuario = User.query.filter_by(email=email).first()
+    if usuario and verificar_contraseña(usuario.password, password):
+        access_token = create_access_token(identity=usuario.id)
 
-        foto_perfil = usuario.get("foto_perfil")
-        if isinstance(foto_perfil, bytes):
+        foto_perfil = usuario.foto_perfil
+        if isinstance(foto_perfil, (bytes, bytearray)):
             foto_perfil = base64.b64encode(foto_perfil).decode("utf-8")
-
-        rol = usuario.get("rol", "usuario")
 
         return {
             "access_token": access_token,
             "usuario": {
-                "id": str(usuario["_id"]),
-                "nombre": usuario["nombre"],
-                "email": usuario["email"],
+                "id": usuario.id,
+                "nombre": usuario.nombre,
+                "email": usuario.email,
                 "foto_perfil": foto_perfil,
-                "rol": rol
+                "rol": usuario.rol
             }
         }
     return None

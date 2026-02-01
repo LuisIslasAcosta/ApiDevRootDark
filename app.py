@@ -5,6 +5,9 @@ from routes.User_routes import user_bp
 from routes.Curso_Routes import curso_bp
 from routes.estadisticas import estadisticas_bp
 from routes.respaldo_routes import respaldo_bp
+from routes.inscripciones_routes import inscripcion_bp
+from routes.examenes_routes import examen_bp
+from routes.preguntas_routes import pregunta_bp
 
 
 app = Flask(__name__)
@@ -17,6 +20,9 @@ app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(curso_bp, url_prefix='/api')
 app.register_blueprint(estadisticas_bp, url_prefix='/api')
 app.register_blueprint(respaldo_bp, url_prefix='/api')
+app.register_blueprint(examen_bp, url_prefix='/api')
+app.register_blueprint(pregunta_bp, url_prefix='/api')
+app.register_blueprint(inscripcion_bp, url_prefix='/api')
 
 @app.route('/')
 def home():

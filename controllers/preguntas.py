@@ -1,40 +1,19 @@
-from flask import Blueprint, request, jsonify
-from bson.errors import InvalidId
-from models.Inscripciones import registrar_inscripcion, eliminar_inscripcion
-from controllers.inscripciones import obtener_inscripciones, obtener_inscripciones_por_curso, obtener_inscripciones_por_alumno
+from config.config import preguntas_collection
+from bson.objectid import ObjectId
 
-inscripcion_bp = Blueprint("inscripcion_bp", __name__)
+def serializar_pregunta(pregunta):
+    return {
+        "id": str(pregunta["_id"]),
+        "examen_id": pregunta["examen_id"],
+        "tipo": pregunta["tipo"],
+        "enunciado": pregunta["enunciado"],
+        "opciones": pregunta.get("opciones", [])
+    }
 
-@inscripcion_bp.route("/inscripciones", methods=["POST"])
-def registrar():
-    datos = request.json
-    curso_id = datos.get("curso_id")
-    alumno_id = datos.get("alumno_id")
+def obtener_todas_preguntas():
+    preguntas = preguntas_collection.find()
+    return [serializar_pregunta(p) for p in preguntas]
 
-    if not curso_id or not alumno_id:
-        return jsonify({"mensaje": "Curso y alumno son obligatorios"}), 400
-
-    return registrar_inscripcion(curso_id, alumno_id)
-
-@inscripcion_bp.route("/inscripciones/<inscripcion_id>", methods=["DELETE"])
-def eliminar(inscripcion_id):
-    try:
-        exito = eliminar_inscripcion(inscripcion_id)
-        if exito:
-            return jsonify({"mensaje": "Inscripción eliminada correctamente"}), 200
-        else:
-            return jsonify({"mensaje": "No se pudo eliminar la inscripción"}), 400
-    except InvalidId:
-        return jsonify({"mensaje": "ID de inscripción inválido"}), 400
-
-@inscripcion_bp.route("/inscripciones", methods=["GET"])
-def listar():
-    return jsonify(obtener_inscripciones()), 200
-
-@inscripcion_bp.route("/inscripciones/curso/<curso_id>", methods=["GET"])
-def listar_por_curso(curso_id):
-    return jsonify(obtener_inscripciones_por_curso(curso_id)), 200
-
-@inscripcion_bp.route("/inscripciones/alumno/<alumno_id>", methods=["GET"])
-def listar_por_alumno(alumno_id):
-    return jsonify(obtener_inscripciones_por_alumno(alumno_id)), 200
+def obtener_preguntas_por_examen(examen_id):
+    preguntas = preguntas_collection.find({"examen_id": examen_id})
+    return [serializar_pregunta(p) for p in preguntas]

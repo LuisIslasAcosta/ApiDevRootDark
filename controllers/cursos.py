@@ -31,3 +31,7 @@ def actualizar_curso(curso_id, datos_actualizados):
 def eliminar_curso(curso_id):
     resultado = cursos_collection.delete_one({"_id": ObjectId(curso_id)})
     return resultado.deleted_count > 0
+
+def obtener_cursos_recientes(limit=5):
+    cursos = cursos_collection.find().sort("fecha_inicio", -1).limit(limit)
+    return [serializar_curso(curso) for curso in cursos]

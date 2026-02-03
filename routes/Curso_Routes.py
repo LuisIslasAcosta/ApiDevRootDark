@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_from_directory
 from models.Curso import registrar_curso
-from controllers.cursos import obtener_cursos, obtener_curso_por_id, actualizar_curso, eliminar_curso
+from controllers.cursos import obtener_cursos, obtener_curso_por_id, actualizar_curso, eliminar_curso, obtener_cursos_recientes
 from werkzeug.utils import secure_filename
 import os
 
@@ -86,3 +86,7 @@ def get_imagen(filename):
 @curso_bp.route("/uploads/videos/<filename>")
 def get_video(filename):
     return send_from_directory(UPLOAD_FOLDER_VIDEOS, filename)
+
+@curso_bp.route('/cursos/recientes', methods=['GET'])
+def listar_recientes():
+    return jsonify(obtener_cursos_recientes()), 200

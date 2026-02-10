@@ -12,10 +12,15 @@ def serializar_usuario(usuario):
 
     return {
         "id": str(usuario["_id"]),
-        "nombre": usuario["nombre"],
-        "email": usuario["email"],
-        "password": usuario["password"],
-        "foto_perfil": foto_perfil
+        "matricula": usuario.get("matricula"),
+        "nombre": usuario.get("nombre"),
+        "apellidop": usuario.get("apellidop"),   # 🔹 apellido paterno
+        "apellidom": usuario.get("apellidom"),   # 🔹 apellido materno
+        "email": usuario.get("email"),
+        "telefono": usuario.get("telefono"),
+        "password": usuario.get("password"),
+        "foto_perfil": foto_perfil,
+        "rol": usuario.get("rol")                # 🔹 ahora sí devuelve el rol
     }
     
 def obtener_usuarios():
@@ -37,3 +42,7 @@ def actualizar_usuario(usuario_id, datos_actualizados):
 def eliminar_usuario(usuario_id):
     resultado = usuarios_collection.delete_one({"_id": ObjectId(usuario_id)})
     return resultado.deleted_count > 0
+
+def obtener_usuarios_recientes(limit=5):
+    usuarios = usuarios_collection.find().sort([("_id", -1)]).limit(limit)
+    return [serializar_usuario(usuario) for usuario in usuarios]

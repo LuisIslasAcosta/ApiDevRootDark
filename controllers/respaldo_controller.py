@@ -16,6 +16,7 @@ config = {"carpeta": BACKUP_DIR, "intervalo": 24}
 def generar_respaldo():
     try:
         client = MongoClient("mongodb://127.0.0.1:27017/")
+        ##client = MongoClient("mongodb://100.68.178.91:27017/")
         db = client["DevRootDark"]
 
         backup_file = os.path.join(
@@ -45,6 +46,7 @@ def restaurar_respaldo():
 
     try:
         client = MongoClient("mongodb://127.0.0.1:27017/")
+        ##client = MongoClient("mongodb://100.68.178.91:27017/")
         db = client["DevRootDark"]
 
         with open(filepath, "r", encoding="utf-8") as f:

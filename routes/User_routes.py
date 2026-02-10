@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from bson.errors import InvalidId
 from controllers.auth import validar_login
 from models.User import registrar_usuario, actualizar_contraseña
-from controllers.user import obtener_usuarios, obtener_usuario_por_id, actualizar_usuario, eliminar_usuario
+from controllers.user import obtener_usuarios, obtener_usuario_por_id, actualizar_usuario, eliminar_usuario, obtener_usuarios_recientes
 
 user_bp = Blueprint('user_bp', __name__)
 
@@ -109,3 +109,11 @@ def eliminar_usuario_route(usuario_id):
 def listar_usuarios():
     usuarios = obtener_usuarios()
     return jsonify(usuarios), 200
+
+@user_bp.route('/usuarios/recientes', methods=['GET'])
+def listar_usuarios_recientes():
+    try:
+        usuarios = obtener_usuarios_recientes()
+        return jsonify(usuarios), 200
+    except Exception as e:
+        return jsonify({"mensaje": f"Error al obtener usuarios recientes: {str(e)}"}), 500

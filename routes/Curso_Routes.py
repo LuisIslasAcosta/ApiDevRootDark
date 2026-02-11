@@ -66,10 +66,42 @@ def obtener(curso_id):
     return jsonify(curso), 200 if curso else ({"mensaje": "Curso no encontrado"}, 404)
 
 @curso_bp.route('/cursos/<curso_id>', methods=['PUT'])
+@jwt_required()
 def actualizar(curso_id):
-    datos = request.json
-    exito = actualizar_curso(curso_id, datos)
-    return ({"mensaje": "Curso actualizado"}, 200) if exito else ({"mensaje": "No se pudo actualizar"}, 400)
+    datos = dict(request.form)
+
+    imagenes_guardadas = []
+    videos_guardados = []
+
+    if "imagenes" in request.files:
+        for i, img in enumerate(request.files.getlist("imagenes"), start=1):
+            filename = secure_filename(f"{curso_id}_img{i}.png")
+            filepath = os.path.join(UPLOAD_FOLDER_IMAGENES, filename)
+            img.save(filepath)
+            imagenes_guardadas.append(filename)
+
+    if "videos" in request.files:
+        for i, vid in enumerate(request.files.getlist("videos"), start=1):
+            filename = secure_filename(f"{curso_id}_vid{i}.mp4")
+            filepath = os.path.join(UPLOAD_FOLDER_VIDEOS, filename)
+            vid.save(filepath)
+            videos_guardados.append(filename)
+
+    update_data = {
+        "nombre": datos.get("nombre"),
+        "descripcion": datos.get("descripcion")
+    }
+
+    if imagenes_guardadas:
+        update_data["imagenes"] = imagenes_guardadas
+
+    if videos_guardados:
+        update_data["videos"] = videos_guardados
+
+    exito = actualizar_curso(curso_id, update_data)
+
+    return jsonify({"mensaje": "Curso actualizado"}), 200 if exito else 400
+
 
 @curso_bp.route('/cursos/<curso_id>', methods=['DELETE'])
 def eliminar(curso_id):
@@ -97,3 +129,8 @@ def mis_cursos():
     cursos = cursos_collection.find({"profesor": profesor})
     lista = [serializar_curso(curso) for curso in cursos]
     return jsonify(lista), 200
+
+@curso_bp.route("/cursos/<curso_id>/alumnos", methods=["GET"])
+def alumnos_curso(curso_id):
+    from controllers.inscripciones import obtener_inscripciones_por_curso
+    return jsonify(obtener_inscripciones_por_curso(curso_id)), 200

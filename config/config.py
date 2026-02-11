@@ -9,3 +9,5 @@ inscripciones_collection = db["inscripciones"]
 preguntas_collection = db["preguntas"]
 lecciones_collection = db["lecciones"]
 respuestas_collection = db["respuestas"]
+niveles_collection = db["niveles"]
+

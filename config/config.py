@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 client = MongoClient("mongodb://localhost:27017/")
 ##client = MongoClient("mongodb://100.68.178.91:27017/")
+##client = MongoClient("mongodb://192.168.155.14:27017/")
 db = client["DevRootDark"]
 usuarios_collection = db["usuarios"]
 cursos_collection = db["cursos"]

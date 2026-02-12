@@ -1,69 +1,216 @@
 {
-  "cursos": [
+  "preguntas": [
     {
-      "nombre": "Curso de React",
-      "descripcion": "Aprende a construir aplicaciones web con React",
-      "profesor": "Luis Enrique",
-      "fecha_inicio": "2026-02-01",
-      "fecha_fin": "2026-03-01"
-    },
-    {
-      "nombre": "Creacion de APIs",
-      "descripcion": "En este curso podras aprender a realizar APIs desde 0 con flask y todas sus loibrerias necesarias",
-      "profesor": "Jorge Luis",
-      "fecha_inicio": "2026-02-01",
-      "fecha_fin": "2026-03-01"
-    },
-    {
-      "nombre": "Curso de Python",
-      "descripcion": "Aprende Python desde cero, incluyendo estructuras de datos, funciones, programación orientada a objetos y librerías populares como Pandas y Flask.",
-      "profesor": "Hector",
-      "fecha_inicio": "2026-02-05",
-      "fecha_fin": "2026-03-10"
-    },
-    {
-      "nombre": "Curso de C++",
-      "descripcion": "Domina C++ con fundamentos sólidos de programación, manejo de memoria, clases, herencia y desarrollo de aplicaciones de alto rendimiento.",
-      "profesor": "Carlos Alberto",
-      "fecha_inicio": "2026-02-08",
-      "fecha_fin": "2026-03-15"
-    },
-    {
-      "nombre": "Curso de JavaScript",
-      "descripcion": "Explora JavaScript moderno, desde lo básico hasta conceptos avanzados como asincronía, promesas, ES6+ y desarrollo frontend con frameworks.",
-      "profesor": "Ana Sofía",
-      "fecha_inicio": "2026-02-12",
-      "fecha_fin": "2026-03-20"
-    },
-    {
-      "nombre": "Cursooo",
-      "descripcion": "Cursooo",
-      "profesor": "Cursooo",
-      "fecha_inicio": "",
-      "fecha_fin": "",
-      "imagenes": [
-        "Cursooo_Asphalt_8__Airborne_04_12_2025_06_40_31_p._m..png",
-        "Cursooo_Asphalt_8__Airborne_08_12_2025_07_15_02_p._m..png",
-        "Cursooo_Controller_Tester_16_12_2025_07_24_18_p._m..png",
-        "Cursooo_Controller_Tester_16_12_2025_07_24_19_p._m._1.png",
-        "Cursooo_Controller_Tester_16_12_2025_07_24_19_p._m..png"
+      "examen_id": "698c4543b37fdc563509affb",
+      "tipo": "multiple",
+      "enunciado": "Uno mas para la prueba 1",
+      "opciones": [
+        "incorrecta",
+        "incorrecta",
+        "",
+        ""
       ],
-      "videos": [
-        "Cursooo_Controller_Tester_2025-11-21_00-40-33.mp4",
-        "Cursooo_Halo__The_Master_Chief_Collection_2025-11-22_00-41-20.mp4"
+      "respuesta_correcta": "Correcta"
+    },
+    {
+      "examen_id": "698cd34bb872aeded2ae19b8",
+      "tipo": "multiple",
+      "enunciado": "¿Que es react?",
+      "opciones": [
+        "esto es erroneo",
+        "Esto tambien es erroneo",
+        "",
+        ""
+      ],
+      "respuesta_correcta": "React es un lenguaje de programacion"
+    },
+    {
+      "examen_id": "698cd3e3b872aeded2ae19ba",
+      "tipo": "multiple",
+      "enunciado": "¿Que es react?",
+      "opciones": [
+        "Esto es erroneo",
+        "Esto tambien es erroneo",
+        "Es  un lenguaje de programacion",
+        ""
+      ],
+      "respuesta_correcta": "Es  un lenguaje de programacion"
+    },
+    {
+      "examen_id": "698d08b57dbcdc631fb65943",
+      "tipo": "multiple",
+      "enunciado": "uno",
+      "opciones": [
+        "a",
+        "a",
+        "s",
+        ""
+      ],
+      "respuesta_correcta": "s"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Cuál es el comando para iniciar una aplicación Flask básica?",
+      "opciones": [
+        "flask run",
+        "python app.py",
+        "flask start",
+        "run flask"
+      ],
+      "respuesta_correcta": "flask run"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Qué objeto principal se utiliza para crear una aplicación en Flask?",
+      "opciones": [
+        " FlaskApp",
+        "Flask",
+        "Application",
+        "AppFlask"
+      ],
+      "respuesta_correcta": "Flask"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Cuál es el decorador usado para definir rutas en Flask?",
+      "opciones": [
+        "@route",
+        "@Flask.route",
+        "@app.route",
+        "@path"
+      ],
+      "respuesta_correcta": "@app.route"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Qué tipo de respuesta devuelve Flask por defecto?",
+      "opciones": [
+        "JSON",
+        "HTML",
+        "XML",
+        "Texto plano"
+      ],
+      "respuesta_correcta": "HTML"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Cuál es el método HTTP usado para enviar datos a un servidor?",
+      "opciones": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
+      "respuesta_correcta": "POST"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Qué módulo de Flask se usa para manejar JSON en las respuestas?",
+      "opciones": [
+        "flask.jsonify",
+        "flask.response",
+        "flask.json",
+        "flask.output"
+      ],
+      "respuesta_correcta": "flask.jsonify"
+    },
+    {
+      "examen_id": "698d95c4826b3fd6ddcf70ed",
+      "tipo": "multiple",
+      "enunciado": "¿Cuál es la función para acceder a datos enviados en un formulario POST?",
+      "opciones": [
+        "request.form",
+        "request.data",
+        " request.json",
+        "request.input"
+      ],
+      "respuesta_correcta": "request.form"
+    }
+  ],
+  "inscripciones": [
+    {
+      "curso_id": "6987f6a1cf7764f810a25fa5",
+      "alumno_id": "6989a5abcf7764f810a25fa8"
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "alumno_id": "698a61dd12deb07f88d4fa85"
+    },
+    {
+      "curso_id": "698a634c12deb07f88d4fa92",
+      "alumno_id": "698a61dd12deb07f88d4fa85"
+    },
+    {
+      "curso_id": "698a637112deb07f88d4fa93",
+      "alumno_id": "698a61dd12deb07f88d4fa85"
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "alumno_id": "698b834c531ee6dbd3497ed3"
+    },
+    {
+      "curso_id": "698a637112deb07f88d4fa93",
+      "alumno_id": "698b834c531ee6dbd3497ed3"
+    },
+    {
+      "curso_id": "698a634c12deb07f88d4fa92",
+      "alumno_id": "698b834c531ee6dbd3497ed3"
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "alumno_id": "698d87f5826b3fd6ddcf70eb"
+    },
+    {
+      "curso_id": "698d083d7dbcdc631fb6593f",
+      "alumno_id": "698d87f5826b3fd6ddcf70eb"
+    }
+  ],
+  "lecciones": [
+    {
+      "curso_id": null,
+      "titulo": "Leccion 1",
+      "contenido": "Aqui encontraras multiples formas para crear formularios, etc",
+      "archivos": []
+    },
+    {
+      "curso_id": null,
+      "titulo": "1",
+      "contenido": "1",
+      "archivos": []
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "nivel_id": "698c19031426a4b6686b9cdd",
+      "titulo": "Leccion 1",
+      "contenido": "Esta es una leccion de nivel 1",
+      "archivos": [
+        "student.jpg",
+        "Report_of_the_SQL_Injection.pdf",
+        "video.mp4"
       ]
     },
     {
-      "nombre": "Cursooo1",
-      "descripcion": "Cursooo1",
-      "profesor": "Cursooo1",
-      "fecha_inicio": "",
-      "fecha_fin": "",
-      "imagenes": [
-        "Cursooo1_imagen1.png"
-      ],
-      "videos": [
-        "Cursooo1_video1.mp4"
+      "curso_id": "698d083d7dbcdc631fb6593f",
+      "nivel_id": "698d084c7dbcdc631fb65940",
+      "titulo": "Leccion 1",
+      "contenido": "Ejemplon de leccion",
+      "archivos": [
+        "Report_of_the_SQL_Injection.pdf"
+      ]
+    },
+    {
+      "curso_id": "698d083d7dbcdc631fb6593f",
+      "nivel_id": "698d084c7dbcdc631fb65940",
+      "titulo": "Leccion 2",
+      "contenido": "Otro ejemplo",
+      "archivos": [
+        "Flask.png"
       ]
     }
   ],
@@ -99,6 +246,319 @@
       "pregunta_seguridad": "¿Cuál fue tu primera mascota?",
       "respuesta_seguridad": "scrypt:32768:8:1$RV9XL6Y8RyFmBwhX$63ac1e83b5d86eff109cc2d28f32b10a2359124ac6c640294fc4b559372296741a00d11d72f5d3a04418541af96b24fd28d3915ea6f48653e6a230447838f36a",
       "rol": "usuario"
+    }
+  ],
+  "examenes": [
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "leccion_id": "698c42481f5cbb0fa29f04a8",
+      "titulo": "Examen de React",
+      "fecha": "2026-02-11"
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "leccion_id": "698c42481f5cbb0fa29f04a8",
+      "titulo": "Uno mas para la prueba",
+      "fecha": "2026-02-11"
+    },
+    {
+      "curso_id": "698d083d7dbcdc631fb6593f",
+      "leccion_id": "698d086b7dbcdc631fb65941",
+      "titulo": "Examen de React",
+      "fecha": "2028-12-12"
+    },
+    {
+      "curso_id": "698d083d7dbcdc631fb6593f",
+      "leccion_id": "698d086b7dbcdc631fb65941",
+      "titulo": "Examen de Python Flask",
+      "fecha": "2026-02-12"
+    }
+  ],
+  "cursos": [
+    {
+      "nombre": "Curso de React",
+      "descripcion": "Aprende a construir aplicaciones web con React",
+      "profesor": "Luis Enrique",
+      "fecha_inicio": "2026-02-01",
+      "fecha_fin": "2026-03-01"
+    },
+    {
+      "nombre": "Creacion de APIs",
+      "descripcion": "En este curso podras aprender a realizar APIs desde 0 con flask y todas sus loibrerias necesarias",
+      "profesor": "Jorge Luis",
+      "fecha_inicio": "2026-02-01",
+      "fecha_fin": "2026-03-01"
+    },
+    {
+      "nombre": "Curso de Python",
+      "descripcion": "Aprende Python desde cero, incluyendo estructuras de datos, funciones, programación orientada a objetos y librerías populares como Pandas y Flask.",
+      "profesor": "Hector",
+      "fecha_inicio": "2026-02-05",
+      "fecha_fin": "2026-03-10"
+    },
+    {
+      "nombre": "Curso de C++",
+      "descripcion": "Domina C++ con fundamentos sólidos de programación, manejo de memoria, clases, herencia y desarrollo de aplicaciones de alto rendimiento.",
+      "profesor": "Carlos Alberto",
+      "fecha_inicio": "2026-02-08",
+      "fecha_fin": "2026-03-15"
+    },
+    {
+      "nombre": "Curso de JavaScript",
+      "descripcion": "Explora JavaScript moderno, desde lo básico hasta conceptos avanzados como asincronía, promesas, ES6+ y desarrollo frontend con frameworks.",
+      "profesor": "Ana Sofía",
+      "fecha_inicio": "2026-02-12",
+      "fecha_fin": "2026-03-20"
+    }
+  ],
+  "niveles": [
+    {
+      "curso_id": null,
+      "titulo": "Nivel 1",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T00:26:28.964Z"
+      }
+    },
+    {
+      "curso_id": null,
+      "titulo": "Nivel 2",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T00:26:37.293Z"
+      }
+    },
+    {
+      "curso_id": null,
+      "titulo": "Nivel 3",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T00:26:45.036Z"
+      }
+    },
+    {
+      "curso_id": null,
+      "titulo": "nivel 1",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T05:37:30.223Z"
+      }
+    },
+    {
+      "curso_id": null,
+      "titulo": "NIvel 19",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T05:42:23.187Z"
+      }
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "titulo": "Nivel 1",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T05:52:03.840Z"
+      }
+    },
+    {
+      "curso_id": "698a634c12deb07f88d4fa92",
+      "titulo": "Niveeel",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T06:07:21.344Z"
+      }
+    },
+    {
+      "curso_id": "698a62b612deb07f88d4fa8f",
+      "titulo": "Nivel 2",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T06:24:25.962Z"
+      }
+    },
+    {
+      "curso_id": "698d083d7dbcdc631fb6593f",
+      "titulo": "Nivel 1",
+      "descripcion": "",
+      "orden": 1,
+      "fecha_creacion": {
+        "$date": "2026-02-11T22:53:00.138Z"
+      }
+    }
+  ],
+  "respuestas": [
+    {
+      "alumno_id": "698b834c531ee6dbd3497ed3",
+      "examen_id": "698cd3e3b872aeded2ae19ba",
+      "respuestas": {
+        "698cd3e3b872aeded2ae19bb": "Es  un lenguaje de programacion"
+      },
+      "correctas": 1,
+      "total": 1,
+      "calificacion": 100.0
+    },
+    {
+      "alumno_id": "698b834c531ee6dbd3497ed3",
+      "examen_id": "698cd3e3b872aeded2ae19ba",
+      "respuestas": {
+        "698cd3e3b872aeded2ae19bb": "Esto tambien es erroneo"
+      },
+      "correctas": 0,
+      "total": 1,
+      "calificacion": 0.0
+    },
+    {
+      "alumno_id": "698a61dd12deb07f88d4fa85",
+      "examen_id": "698cd3e3b872aeded2ae19ba",
+      "respuestas": {
+        "698cd3e3b872aeded2ae19bb": "Es  un lenguaje de programacion"
+      },
+      "correctas": 1,
+      "total": 1,
+      "calificacion": 100.0,
+      "fecha": {
+        "$date": "2026-02-11T19:19:55.184Z"
+      }
+    },
+    {
+      "alumno_id": "698b834c531ee6dbd3497ed3",
+      "examen_id": "698cd3e3b872aeded2ae19ba",
+      "respuestas": {
+        "698cd3e3b872aeded2ae19bb": "Esto es erroneo"
+      },
+      "correctas": 0,
+      "total": 1,
+      "calificacion": 0.0,
+      "fecha": {
+        "$date": "2026-02-11T19:36:31.741Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698b834c531ee6dbd3497ed3"
+      },
+      "examen_id": {
+        "$oid": "698cd3e3b872aeded2ae19ba"
+      },
+      "respuestas": {
+        "698cd3e3b872aeded2ae19bb": "Esto es erroneo"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T19:45:17.806Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698a61dd12deb07f88d4fa85"
+      },
+      "examen_id": {
+        "$oid": "698cd34bb872aeded2ae19b8"
+      },
+      "respuestas": {
+        "698cd34bb872aeded2ae19b9": "Esto tambien es erroneo"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T19:53:17.877Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698a61dd12deb07f88d4fa85"
+      },
+      "examen_id": {
+        "$oid": "698cd34bb872aeded2ae19b8"
+      },
+      "respuestas": {
+        "698cd34bb872aeded2ae19b9": "Esto tambien es erroneo"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T19:55:25.388Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698a61dd12deb07f88d4fa85"
+      },
+      "examen_id": {
+        "$oid": "698cd34bb872aeded2ae19b8"
+      },
+      "respuestas": {
+        "698cd34bb872aeded2ae19b9": "Esto tambien es erroneo"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T19:55:27.626Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698a61dd12deb07f88d4fa85"
+      },
+      "examen_id": {
+        "$oid": "698cd34bb872aeded2ae19b8"
+      },
+      "respuestas": {
+        "698cd34bb872aeded2ae19b9": "esto es erroneo"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T19:55:34.324Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698b834c531ee6dbd3497ed3"
+      },
+      "examen_id": {
+        "$oid": "698d08b57dbcdc631fb65943"
+      },
+      "respuestas": {
+        "698d08b57dbcdc631fb65944": "a"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T22:59:20.008Z"
+      }
+    },
+    {
+      "alumno_id": {
+        "$oid": "698b834c531ee6dbd3497ed3"
+      },
+      "examen_id": {
+        "$oid": "698d08b57dbcdc631fb65943"
+      },
+      "respuestas": {
+        "698d08b57dbcdc631fb65944": "s"
+      },
+      "correctas": 0,
+      "total": 0,
+      "calificacion": 0,
+      "fecha": {
+        "$date": "2026-02-11T23:00:20.742Z"
+      }
     }
   ]
 }

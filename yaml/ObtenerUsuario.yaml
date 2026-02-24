@@ -1,0 +1,13 @@
+tags:
+  - Users
+description: Obtener un usuario por su ID
+parameters:
+  - name: user_id
+    in: path
+    type: integer
+    required: true
+responses:
+  200:
+    description: Datos del usuario
+  404:
+    description: Usuario no encontrado

@@ -1,31 +1,38 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from models.models import User, Curso, Leccion, Examen, Pregunta, Opcion, Inscripcion, IntentoExamen
+from flask import Flask
+from controllers.HomeController import blueprint_home
+from extensions import db, migrate, swagger
 from config import Config
-from extensions import migrate, db
-from routes.Curso_Routes import curso_bp
-from routes.estadisticas import estadisticas_bp
-from routes.respaldo_routes import respaldo_bp 
-from routes.User_routes import user_bp
+from flask_jwt_extended import JWTManager
+from controllers.AuthController import auth_bp
+from flask_cors import CORS  # 👈 IMPORTANTE
 
 
-app = Flask(__name__)
-app.config.from_object(Config)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-db.init_app(app)
-migrate.init_app(app, db)
+    # 👇 ACTIVAR CORS AQUÍ
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
-jwt = JWTManager(app)
-app.register_blueprint(user_bp, url_prefix='/api')
-app.register_blueprint(curso_bp, url_prefix='/api')
-app.register_blueprint(respaldo_bp, url_prefix='/api')
-app.register_blueprint(estadisticas_bp, url_prefix='/api')
+    db.init_app(app)
+    migrate.init_app(app, db)
+    swagger.init_app(app)
 
-@app.route('/')
-def home():
-    return render_template('correcto.html')
+    app.config['JWT_SECRET_KEY'] = 'jwt-super-secret'
+    app.config['JWT_TOKEN_LOCATION'] = ['headers']
+
+    jwt = JWTManager(app)
+
+    app.register_blueprint(auth_bp, url_prefix='/api')
+    app.register_blueprint(blueprint_home)
+
+    @app.route('/')
+    def home():
+        return {'mensaje': 'hola mundo'}, 200
+
+    return app
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app = create_app()
+    app.run(debug=True, host='0.0.0.0', port=5000)

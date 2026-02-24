@@ -1,0 +1,43 @@
+tags:
+  - Users
+description: Endpoint_para_registrar_un_nuevo_usuario
+parameters:
+  - name: body
+    in: body
+    schema:
+      type: object
+      properties:
+        nombre:
+          type: string
+        apellidop:
+          type: string
+        apellidom:
+          type: string
+        fecha_nacimiento:
+          type: string
+        pais:
+          type: string
+        ciudad:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        verificar_password:
+          type: string
+        pregunta_seguridad:
+          type: string
+        respuesta_seguridad:
+          type: string
+        telefono:
+          type: string
+      required:
+        - nombre
+        - apellidop
+        - apellidom
+        - email
+        - password
+        - verificar_password
+responses:
+  200:
+    description: Usuario creado correctamente

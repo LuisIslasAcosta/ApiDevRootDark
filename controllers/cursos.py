@@ -7,10 +7,8 @@ def serializar_curso(curso):
         "nombre": curso["nombre"],
         "descripcion": curso["descripcion"],
         "profesor": curso["profesor"],
-        "fecha_inicio": curso["fecha_inicio"],
-        "fecha_fin": curso["fecha_fin"],
-        "imagenes": curso.get("imagenes", []),  
-        "videos": curso.get("videos", [])    
+        "imagenes": curso.get("imagenes", []),
+        "videos": curso.get("videos", [])
     }
 
 def obtener_cursos():
@@ -31,3 +29,7 @@ def actualizar_curso(curso_id, datos_actualizados):
 def eliminar_curso(curso_id):
     resultado = cursos_collection.delete_one({"_id": ObjectId(curso_id)})
     return resultado.deleted_count > 0
+
+def obtener_cursos_recientes(limit=5):
+    cursos = cursos_collection.find().sort("_id", -1).limit(limit)
+    return [serializar_curso(curso) for curso in cursos]

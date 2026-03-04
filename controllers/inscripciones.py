@@ -4,13 +4,16 @@ from bson.objectid import ObjectId
 def serializar_inscripcion(inscripcion):
     curso = cursos_collection.find_one({"_id": ObjectId(inscripcion["curso_id"])})
     alumno = usuarios_collection.find_one({"_id": ObjectId(inscripcion["alumno_id"])})
+
     return {
         "id": str(inscripcion["_id"]),
         "curso_id": inscripcion["curso_id"],
         "curso_nombre": curso["nombre"] if curso else "Desconocido",
         "alumno_id": inscripcion["alumno_id"],
-        "alumno_nombre": alumno["nombre"] if alumno else "Desconocido"
+        "alumno_nombre": alumno.get("nombre", "Sin nombre") if alumno else "Usuario eliminado",
+        "alumno_email": alumno.get("email", "") if alumno else ""
     }
+
 
 def obtener_inscripciones():
     inscripciones = inscripciones_collection.find()

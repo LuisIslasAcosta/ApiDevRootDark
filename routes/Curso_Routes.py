@@ -17,7 +17,7 @@ os.makedirs(UPLOAD_FOLDER_IMAGENES, exist_ok=True)
 @curso_bp.route('/cursos', methods=['POST'])
 @jwt_required()
 def registrar():
-    profesor = str(get_jwt_identity())  # 👈 profesor autenticado desde el token
+    profesor = str(get_jwt_identity()) 
 
     if request.is_json:
         datos = request.json

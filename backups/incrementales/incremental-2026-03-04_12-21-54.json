@@ -1,0 +1,18 @@
+{
+  "usuarios": [],
+  "cursos": [
+    {
+      "_id": {
+        "$oid": "69a87830f29505147247312b"
+      },
+      "nombre": "hola",
+      "descripcion": "",
+      "profesor": "69a847ad6812214a29f9b807",
+      "imagenes": [],
+      "videos": [],
+      "fecha_actualizacion": {
+        "$date": "2026-03-04T12:21:54.226Z"
+      }
+    }
+  ]
+}

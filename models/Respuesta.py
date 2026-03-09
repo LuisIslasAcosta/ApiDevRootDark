@@ -1,36 +1,42 @@
-from config.config import respuestas_collection, preguntas_collection
-from flask import jsonify
+from config.config import preguntas_collection, respuestas_collection
 from bson.objectid import ObjectId
-from datetime import datetime
+from flask import jsonify
 
 def guardar_respuestas(alumno_id, examen_id, respuestas):
-    alumno_id = ObjectId(alumno_id)
-    examen_id = ObjectId(examen_id)
 
     preguntas = list(preguntas_collection.find({"examen_id": examen_id}))
+
     correctas = 0
-
-    for p in preguntas:
-        r_alumno = respuestas.get(str(p["_id"]))
-        if r_alumno == p.get("respuesta_correcta"):
-            correctas += 1
-
     total = len(preguntas)
-    calificacion = round((correctas / total) * 100, 2) if total > 0 else 0
 
-    resultado = {
-        "alumno_id": alumno_id,
+    for pregunta in preguntas:
+
+        pregunta_id = str(pregunta["_id"])
+        respuesta_usuario = respuestas.get(pregunta_id)
+
+        respuesta_correcta = pregunta.get("respuesta_correcta")
+
+        if respuesta_usuario and respuesta_correcta:
+
+            if respuesta_usuario.strip().lower() == respuesta_correcta.strip().lower():
+                correctas += 1
+
+    calificacion = 0
+
+    if total > 0:
+        calificacion = round((correctas / total) * 100)
+
+    respuestas_collection.insert_one({
+        "alumno_id": ObjectId(alumno_id),
         "examen_id": examen_id,
-        "respuestas": respuestas,
         "correctas": correctas,
         "total": total,
-        "calificacion": calificacion,
-        "fecha": datetime.utcnow()
-    }
-
-    respuestas_collection.insert_one(resultado)
+        "calificacion": calificacion
+    })
 
     return jsonify({
-        "mensaje": "Respuestas guardadas",
+        "mensaje": "Examen enviado",
+        "correctas": correctas,
+        "total": total,
         "calificacion": calificacion
     }), 201

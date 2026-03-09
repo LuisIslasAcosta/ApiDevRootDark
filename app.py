@@ -15,6 +15,7 @@ from routes.lecciones_route import leccion_bp
 from routes.respuestas_route import respuesta_bp
 from routes.reportes import reportes_bp
 from routes.niveles_routes import nivel_bp
+from routes.promedio_routes import spark_bp
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'qwertydark444'
@@ -34,6 +35,7 @@ app.register_blueprint(leccion_bp, url_prefix='/api')
 app.register_blueprint(respuesta_bp, url_prefix='/api')
 app.register_blueprint(reportes_bp, url_prefix='/api')
 app.register_blueprint(nivel_bp, url_prefix='/api')
+app.register_blueprint(spark_bp, url_prefix='/api')
 
 # Carpeta de uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")

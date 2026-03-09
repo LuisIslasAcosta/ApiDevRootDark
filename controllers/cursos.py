@@ -7,6 +7,7 @@ def serializar_curso(curso):
         "nombre": curso["nombre"],
         "descripcion": curso["descripcion"],
         "profesor": curso["profesor"],
+        "precio": curso.get("precio", 0),
         "imagenes": curso.get("imagenes", []),
         "videos": curso.get("videos", [])
     }

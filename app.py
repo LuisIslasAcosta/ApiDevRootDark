@@ -18,6 +18,7 @@ from routes.niveles_routes import nivel_bp
 from routes.promedio_routes import spark_bp
 from routes.kmeans_routes import kmeans_bp
 from routes.analisis_respuestas import analisis_bp
+from routes.ventas_routes import ventas_bp
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'qwertydark444'
@@ -39,6 +40,7 @@ app.register_blueprint(reportes_bp, url_prefix='/api')
 app.register_blueprint(nivel_bp, url_prefix='/api')
 app.register_blueprint(spark_bp, url_prefix='/api')
 app.register_blueprint(analisis_bp, url_prefix='/api')
+app.register_blueprint(ventas_bp)
 app.register_blueprint(kmeans_bp)
 
 

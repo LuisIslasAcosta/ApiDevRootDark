@@ -2,12 +2,14 @@ from config.config import examenes_collection
 from flask import jsonify
 from bson.objectid import ObjectId
 
-def registrar_examen(curso_id, leccion_id, titulo, fecha):
+def registrar_examen(curso_id, titulo, fecha, leccion_id=None, nivel_id=None, preguntas=None):
     nuevo_examen = {
         "curso_id": curso_id,
         "leccion_id": leccion_id,
+        "nivel_id": nivel_id,
         "titulo": titulo,
-        "fecha": fecha
+        "fecha": fecha,
+        "preguntas": preguntas or []
     }
 
     try:

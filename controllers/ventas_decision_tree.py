@@ -11,7 +11,6 @@ def analizar_ventas_decision_tree(profesor_id=None):
     spark, df, df_vector = get_dataframe(profesor_id)
 
     if df is None or df.count() == 0:
-        spark.stop()
         return {"error": "No hay cursos registrados o datos insuficientes."}
 
     # ================= RESUMEN POR CURSO =================
@@ -47,12 +46,10 @@ def analizar_ventas_decision_tree(profesor_id=None):
     dataset = df_ml.select("features", "label")
 
     if dataset.count() == 0:
-        spark.stop()
         return {"error": "Dataset vacío después de limpieza."}
 
     train_data, test_data = dataset.randomSplit([0.8, 0.2], seed=42)
     if train_data.count() == 0 or test_data.count() == 0:
-        spark.stop()
         return {"error": "No hay suficientes datos para entrenar/prueba."}
 
     dt = DecisionTreeClassifier(featuresCol="features", labelCol="label", maxDepth=3)
@@ -77,8 +74,6 @@ def analizar_ventas_decision_tree(profesor_id=None):
             {"name": "Clase 1"}
         ]
     }
-
-    spark.stop()
 
     return {
         "profesor_id": profesor_id,

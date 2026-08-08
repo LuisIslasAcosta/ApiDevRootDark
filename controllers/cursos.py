@@ -1,12 +1,27 @@
 from config.config import cursos_collection
+from config.config import  usuarios_collection
 from bson.objectid import ObjectId
 
 def serializar_curso(curso):
+    profesor_id = str(curso["profesor"])
+    
+    print(f"🔍 Buscando profesor con ID: {profesor_id}")
+    
+    usuario = usuarios_collection.find_one({"_id": ObjectId(profesor_id)})
+    
+    nombre_profesor = "Desconocido"
+    if usuario:
+        nombre_profesor = f"{usuario.get('nombre', '')} {usuario.get('apellidop', '')}"
+        print(f"✅ Profesor encontrado: {nombre_profesor}")
+    else:
+        print(f"⚠️ Profesor NO encontrado para ID: {profesor_id}")
+
     return {
         "id": str(curso["_id"]),
         "nombre": curso["nombre"],
         "descripcion": curso["descripcion"],
-        "profesor": curso["profesor"],
+        "profesor": nombre_profesor,  
+        "profesor_id": profesor_id,   
         "precio": curso.get("precio", 0),
         "imagenes": curso.get("imagenes", []),
         "videos": curso.get("videos", [])

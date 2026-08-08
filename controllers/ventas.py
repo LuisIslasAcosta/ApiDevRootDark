@@ -5,7 +5,6 @@ def analizar_ventas(profesor_id=None):
     spark, df, df_vector = get_dataframe(profesor_id)
 
     if df is None:
-        spark.stop()
         return {"error": "No hay cursos registrados."}
 
     # Reclasificación de nulos
@@ -33,8 +32,6 @@ def analizar_ventas(profesor_id=None):
             elif r["cantidad_total"] == max_cantidad:
                 tipo = "Curso de Alta Rotación"
             r["clasificacion"] = tipo
-
-    spark.stop()
 
     return {
         "profesor_id": profesor_id,

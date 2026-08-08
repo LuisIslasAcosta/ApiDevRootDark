@@ -30,11 +30,15 @@ def listar_por_curso(curso_id):
 # =========================
 @nivel_bp.route("/niveles/curso/<curso_id>/con_lecciones", methods=["GET"])
 def listar_por_curso_con_lecciones(curso_id):
+    print(f"DEBUG NIVELES: Buscando niveles para curso_id: {curso_id}")
     niveles = obtener_niveles_por_curso(curso_id)
+    print(f"DEBUG NIVELES: Niveles encontrados: {len(niveles)}")
     
     for nivel in niveles:
+        print(f"DEBUG NIVELES: Procesando nivel {nivel['id']}")
         # Obtener todas las lecciones de este nivel
         lecciones = obtener_lecciones_por_nivel(nivel["id"])
+        print(f"DEBUG NIVELES: Lecciones encontradas: {len(lecciones)}")
         nivel["lecciones"] = lecciones  # agregar las lecciones dentro del nivel
     
     return jsonify(niveles), 200

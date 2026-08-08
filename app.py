@@ -17,14 +17,22 @@ from routes.reportes import reportes_bp
 from routes.niveles_routes import nivel_bp
 from routes.promedio_routes import spark_bp
 from routes.kmeans_routes import kmeans_bp
+from routes.predicciones_routes import prediccion_bp
 from routes.analisis_respuestas import analisis_bp
+from routes.analisis_dificultad_routes import analisis_dificultad_bp
+from routes.segmentacion_routes import segmentacion_bp
 from routes.ventas_routes import ventas_bp
 from routes.ventas_decision_tree_routes import ventas_dt_bp
+from routes.regresion_logistica_routes import regresion_logistica_bp
+from routes.analisis_progreso_routes import analisis_progreso_bp
+from routes.recomendaciones_routes import recomendacion_bp
+from routes.segmentacion_alumnos_routes import segmentacion_alumnos_bp
+from routes.proxy_routes import proxy_bp
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'qwertydark444'
 
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5000", "http://127.0.0.1:5000", "http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:8080", "http://127.0.0.1:8080"]}})
 jwt = JWTManager(app)
 
 # Registro de blueprints
@@ -41,9 +49,17 @@ app.register_blueprint(reportes_bp, url_prefix='/api')
 app.register_blueprint(nivel_bp, url_prefix='/api')
 app.register_blueprint(spark_bp, url_prefix='/api')
 app.register_blueprint(analisis_bp, url_prefix='/api')
-app.register_blueprint(ventas_bp)
-app.register_blueprint(ventas_dt_bp)
-app.register_blueprint(kmeans_bp)
+app.register_blueprint(prediccion_bp, url_prefix='/api')
+app.register_blueprint(analisis_dificultad_bp, url_prefix='/api')
+app.register_blueprint(segmentacion_bp, url_prefix='/api')
+app.register_blueprint(analisis_progreso_bp, url_prefix='/api')
+app.register_blueprint(recomendacion_bp, url_prefix='/api')
+app.register_blueprint(ventas_bp, url_prefix='/api')
+app.register_blueprint(ventas_dt_bp, url_prefix='/api')
+app.register_blueprint(regresion_logistica_bp, url_prefix='/api')
+app.register_blueprint(kmeans_bp, url_prefix='/api')
+app.register_blueprint(segmentacion_alumnos_bp, url_prefix='/api')
+app.register_blueprint(proxy_bp, url_prefix='/api')
 
 
 # Carpeta de uploads

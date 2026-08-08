@@ -5,7 +5,7 @@ from controllers.ventas import analizar_ventas
 ventas_bp = Blueprint("ventas", __name__)
 
 
-@ventas_bp.route("/api/ventas", methods=["GET"])
+@ventas_bp.route("/ventas", methods=["GET"])
 def ventas_route():
     try:
         verify_jwt_in_request()

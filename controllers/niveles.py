@@ -4,13 +4,16 @@ from bson import ObjectId
 def serializar_nivel(n):
     return {
         "id": str(n["_id"]),
-        "curso_id": n["curso_id"],
+        "curso_id": str(n["curso_id"]),
         "titulo": n["titulo"],
         "orden": n.get("orden", 1)
     }
 
 
 def obtener_niveles_por_curso(curso_id):
+    # Convertir string a ObjectId si es necesario
+    if isinstance(curso_id, str):
+        curso_id = ObjectId(curso_id)
     niveles = niveles_collection.find({"curso_id": curso_id}).sort("orden", 1)
     return [serializar_nivel(n) for n in niveles]
 

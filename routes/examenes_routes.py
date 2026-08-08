@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from bson.errors import InvalidId
+from bson.objectid import ObjectId
 from models.Examen import registrar_examen, eliminar_examen
 from controllers.examenes import obtener_examenes, obtener_examenes_por_curso, serializar_examen
 from config.config import examenes_collection, preguntas_collection
@@ -82,7 +83,21 @@ def listar_por_curso(curso_id):
 
 @examen_bp.route("/examenes/leccion/<leccion_id>", methods=["GET"])
 def listar_por_leccion(leccion_id):
-    examenes = examenes_collection.find({"leccion_id": leccion_id})
+    try:
+        leccion_id_obj = ObjectId(leccion_id)
+        examenes = examenes_collection.find({"leccion_id": leccion_id_obj})
+    except:
+        examenes = examenes_collection.find({"leccion_id": leccion_id})
+    return jsonify([serializar_examen(ex) for ex in examenes]), 200
+
+
+@examen_bp.route("/examenes/nivel/<nivel_id>", methods=["GET"])
+def listar_por_nivel(nivel_id):
+    try:
+        nivel_id_obj = ObjectId(nivel_id)
+        examenes = examenes_collection.find({"nivel_id": nivel_id_obj})
+    except:
+        examenes = examenes_collection.find({"nivel_id": nivel_id})
     return jsonify([serializar_examen(ex) for ex in examenes]), 200
 
 

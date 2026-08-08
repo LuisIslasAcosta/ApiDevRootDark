@@ -4,7 +4,7 @@ from controllers.ventas_decision_tree import analizar_ventas_decision_tree
 
 ventas_dt_bp = Blueprint("ventas_dt", __name__)
 
-@ventas_dt_bp.route("/api/ventas/decision-tree", methods=["GET"])
+@ventas_dt_bp.route("/ventas/decision-tree", methods=["GET"])
 @jwt_required()
 def ventas_decision_tree_route():
 

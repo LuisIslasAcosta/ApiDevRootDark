@@ -1,4 +1,5 @@
 APScheduler==3.11.2
+requests==2.32.5
 blinker==1.9.0
 certifi==2026.2.25
 click==8.1.8

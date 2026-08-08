@@ -32,13 +32,16 @@ def registrar():
 
         datos = request.json
 
+        imagenes = datos.get('imagenes', [])
+        videos = datos.get('videos', [])
+
         return registrar_curso(
             nombre=datos.get('nombre'),
             descripcion=datos.get('descripcion'),
             profesor=profesor,
             precio=datos.get('precio'),
-            imagenes=datos.get('imagenes', []),
-            videos=datos.get('videos', [])
+            imagenes=imagenes,
+            videos=videos
         )
 
     else:
@@ -48,22 +51,29 @@ def registrar():
         precio = request.form.get("precio")
 
         imagenes_guardadas = []
+        
         for i, img in enumerate(request.files.getlist("imagenes"), start=1):
-
             filename = secure_filename(f"{nombre}_imagen{i}.png")
             filepath = os.path.join(UPLOAD_FOLDER_IMAGENES, filename)
-
             img.save(filepath)
             imagenes_guardadas.append(filename)
 
+        urls_imagenes = request.form.get("imagenes_url", "")
+        if urls_imagenes:
+            urls_lista = [url.strip() for url in urls_imagenes.split(",") if url.strip()]
+            imagenes_guardadas.extend(urls_lista)
+
         videos_guardados = []
         for i, vid in enumerate(request.files.getlist("videos"), start=1):
-
             filename = secure_filename(f"{nombre}_video{i}.mp4")
             filepath = os.path.join(UPLOAD_FOLDER_VIDEOS, filename)
-
             vid.save(filepath)
             videos_guardados.append(filename)
+
+        urls_videos = request.form.get("videos_url", "")
+        if urls_videos:
+            urls_lista = [url.strip() for url in urls_videos.split(",") if url.strip()]
+            videos_guardados.extend(urls_lista)
 
         return registrar_curso(
             nombre=nombre,
@@ -110,6 +120,11 @@ def actualizar(curso_id):
             img.save(filepath)
             imagenes_guardadas.append(filename)
 
+    urls_imagenes = request.form.get("imagenes_url", "")
+    if urls_imagenes:
+        urls_lista = [url.strip() for url in urls_imagenes.split(",") if url.strip()]
+        imagenes_guardadas.extend(urls_lista)
+
     if "videos" in request.files:
 
         for i, vid in enumerate(request.files.getlist("videos"), start=1):
@@ -119,6 +134,11 @@ def actualizar(curso_id):
 
             vid.save(filepath)
             videos_guardados.append(filename)
+
+    urls_videos = request.form.get("videos_url", "")
+    if urls_videos:
+        urls_lista = [url.strip() for url in urls_videos.split(",") if url.strip()]
+        videos_guardados.extend(urls_lista)
 
     update_data = {
         "nombre": datos.get("nombre"),

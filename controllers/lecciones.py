@@ -7,8 +7,8 @@ from bson.objectid import ObjectId
 def serializar_leccion(leccion):
     return {
         "id": str(leccion["_id"]),
-        "curso_id": leccion.get("curso_id"),
-        "nivel_id": leccion.get("nivel_id"),
+        "curso_id": str(leccion.get("curso_id", "")),
+        "nivel_id": str(leccion.get("nivel_id", "")),
         "titulo": leccion.get("titulo"),
         "contenido": leccion.get("contenido", ""),
         "archivos": leccion.get("archivos", [])
@@ -40,6 +40,9 @@ def eliminar_leccion(leccion_id):
 # OBTENER LECCIONES POR CURSO
 # =========================
 def obtener_lecciones_por_curso(curso_id):
+    # Convertir string a ObjectId si es necesario
+    if isinstance(curso_id, str):
+        curso_id = ObjectId(curso_id)
     lecciones = lecciones_collection.find({"curso_id": curso_id})
     return [serializar_leccion(l) for l in lecciones]
 
@@ -47,6 +50,9 @@ def obtener_lecciones_por_curso(curso_id):
 # OBTENER LECCIONES POR NIVEL
 # =========================
 def obtener_lecciones_por_nivel(nivel_id):
+    # Convertir string a ObjectId si es necesario
+    if isinstance(nivel_id, str):
+        nivel_id = ObjectId(nivel_id)
     lecciones = lecciones_collection.find({"nivel_id": nivel_id})
     return [serializar_leccion(l) for l in lecciones]
 

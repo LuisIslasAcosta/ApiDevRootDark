@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import send_file, jsonify, request
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
-from bson import json_util
+from bson import json_util, ObjectId
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -151,13 +151,49 @@ def restaurar_respaldo():
         if "file" not in request.files:
             return jsonify({"error": "No se envió archivo"}), 400
         file = request.files["file"]
-        contenido = json_util.loads(file.read())
+        
+        # Leer el contenido del archivo
+        contenido_bytes = file.read()
+        
+        # USAR json_util para convertir correctamente los campos especiales de MongoDB ($oid, $date, etc.)
+        try:
+            contenido = json_util.loads(contenido_bytes.decode('utf-8'))
+        except Exception as e:
+            print(f"Error con json_util: {e}")
+            # Fallback a json estándar
+            contenido = json.loads(contenido_bytes.decode('utf-8'))
+        
         db = get_database()
+        total_docs = 0
+        errores = 0
+        
         for collection_name, docs in contenido.items():
+            # Borrar colección actual
             db[collection_name].delete_many({})
+            
             if docs:
-                db[collection_name].insert_many(docs)
-        return jsonify({"message": "Base de datos restaurada correctamente"})
+                # Convertir todos los documentos usando json_util para manejar $oid, $date, etc.
+                docs_limpios = []
+                for idx, doc in enumerate(docs):
+                    try:
+                        # Convertir el documento a JSON string y luego de vuelta para normalizar
+                        doc_json = json_util.dumps(doc)
+                        doc_limpio = json_util.loads(doc_json)
+                        
+                        # Ahora doc_limpio tiene ObjectId y datetime correctos
+                        docs_limpios.append(doc_limpio)
+                    except Exception as e:
+                        print(f"Error procesando documento {idx}: {e}")
+                        errores += 1
+                        continue
+                
+                if docs_limpios:
+                    print(f"Insertando {len(docs_limpios)} documentos en {collection_name}")
+                    db[collection_name].insert_many(docs_limpios)
+                    total_docs += len(docs_limpios)
+        
+        print(f"Respaldo completado: {total_docs} documentos insertados, {errores} errores")
+        return jsonify({"message": f"Base de datos restaurada: {total_docs} documentos insertados"})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -189,7 +225,29 @@ def restaurar_respaldo_lista(nombre, tipo):
                 # Borra todo para respaldo completo
                 db[collection_name].delete_many({})
                 if docs:
-                    db[collection_name].insert_many(docs)
+                    # Asegurar que todos los documentos sean diccionarios válidos
+                    docs_limpios = []
+                    for doc in docs:
+                        try:
+                            # Si no es un diccionario, saltar
+                            if not isinstance(doc, dict):
+                                print(f"Documento no es dict: {type(doc)}")
+                                continue
+                            
+                            # Convertir _id a ObjectId si es necesario
+                            if '_id' in doc and not isinstance(doc['_id'], ObjectId):
+                                try:
+                                    doc['_id'] = ObjectId(str(doc['_id']))
+                                except Exception as e:
+                                    print(f"Error convirtiendo _id: {e}")
+                            
+                            docs_limpios.append(doc)
+                        except Exception as e:
+                            print(f"Error procesando documento: {e}")
+                            continue
+                    
+                    if docs_limpios:
+                        db[collection_name].insert_many(docs_limpios)
             else:
                 # Incremental/diferencial: actualizar o insertar sin borrar todo
                 for doc in docs:

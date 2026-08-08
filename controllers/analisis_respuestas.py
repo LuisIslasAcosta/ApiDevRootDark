@@ -1,20 +1,22 @@
 from bson.objectid import ObjectId
 from config.config import respuestas_collection
-from pyspark.sql import SparkSession
+from config.mongo_spark_conexion import get_spark_session
 import numpy as np
 
 def analizar_respuestas(alumno_id):
-    spark = SparkSession.builder.appName("AnalisisRespuestas").master("local[*]").getOrCreate()
+    spark = get_spark_session()
+
+    if spark is None:
+        return {"error": "Error al conectar con Spark. Verifica la configuración."}
 
     try:
         alumno_oid = ObjectId(alumno_id)
     except:
-        spark.stop()
         return {"error": "Formato de alumno_id inválido."}
 
-    respuestas = list(respuestas_collection.find({"alumno_id": alumno_oid}))
+    # Ordenamos por _id para asegurar que el historial sea cronológico
+    respuestas = list(respuestas_collection.find({"alumno_id": alumno_oid}).sort("_id", 1))
     if not respuestas:
-        spark.stop()
         return {"error": "El alumno no tiene respuestas registradas."}
 
     # Limpieza
@@ -28,7 +30,6 @@ def analizar_respuestas(alumno_id):
     # ================= HISTORIAL =================
     califs = df.select("calificacion").rdd.flatMap(lambda x: x).collect()
     if len(califs) == 0:
-        spark.stop()
         return {"error": "Sin datos"}
 
     # ================= PROMEDIO =================
@@ -51,8 +52,8 @@ def analizar_respuestas(alumno_id):
     y = np.array(califs)
 
     if len(califs) > 1:
-        coef = np.polyfit(x, y, 2)  # polinomio cuadrático
-        prediccion = np.polyval(coef, len(x) + 1)
+        coef = np.polyfit(x, y, 1)  # polinomio lineal: más estable para ver si mejora o empeora
+        prediccion = np.polyval(coef, len(x)) # Predecimos el valor del SIGUIENTE examen (índice n)
     else:
         prediccion = promedio
 
@@ -70,8 +71,6 @@ def analizar_respuestas(alumno_id):
 
     # ================= RESPUESTA =================
     historial = df.select("examen_id", "calificacion").toPandas().to_dict("records")
-
-    spark.stop()
 
     return {
         "alumno_id": alumno_id,

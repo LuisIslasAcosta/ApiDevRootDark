@@ -51,29 +51,8 @@ def listar():
 @pregunta_bp.route("/preguntas/examen/<examen_id>", methods=["GET"])
 def obtener_preguntas_examen(examen_id):
     try:
-        filtro = {"examen_id": examen_id}
-
-        # Si es ObjectId válido, probar también
-        try:
-            filtro = {"$or": [
-                {"examen_id": examen_id},
-                {"examen_id": ObjectId(examen_id)}
-            ]}
-        except:
-            pass
-
-        preguntas = list(preguntas_collection.find(filtro))
-
-        resultado = [
-            {
-                "id": str(p["_id"]),
-                "enunciado": p.get("enunciado", ""),
-                "opciones": p.get("opciones", []),
-                "tipo": p.get("tipo", "multiple")
-            }
-            for p in preguntas
-        ]
-
+        from controllers.preguntas import obtener_preguntas_por_examen
+        resultado = obtener_preguntas_por_examen(examen_id)
         return jsonify(resultado), 200
 
     except Exception as e:

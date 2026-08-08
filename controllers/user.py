@@ -18,7 +18,7 @@ def serializar_usuario(usuario):
         "telefono": usuario.get("telefono"),
         "foto_perfil": foto_perfil,
         "rol": usuario.get("rol")
-        # ❌ NO enviar password
+        #  NO enviar password
     }
 
 

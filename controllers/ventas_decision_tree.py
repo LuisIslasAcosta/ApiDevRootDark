@@ -66,7 +66,7 @@ def analizar_ventas_decision_tree(profesor_id=None):
     predicciones = predictions.select("features_str", "label", "prediction").limit(10).toPandas().to_dict("records")
 
     # ================= ÁRBOL EN JSON =================
-    # ⚠️ Ejemplo simple: raíz con dos hojas
+    #  Ejemplo simple: raíz con dos hojas
     arbol_json = {
         "name": "precio_promedio <= 64.5",
         "children": [
@@ -79,6 +79,6 @@ def analizar_ventas_decision_tree(profesor_id=None):
         "profesor_id": profesor_id,
         "resumen": resumen_pd,
         "accuracy": round(accuracy, 4),
-        "arbol": arbol_json,   # 👈 ahora es JSON
+        "arbol": arbol_json,   
         "ejemplo_predicciones": predicciones
     }

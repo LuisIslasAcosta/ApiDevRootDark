@@ -120,7 +120,7 @@ def listar_usuarios_recientes():
 
 # ============================= RECUPERAR CONTRASEÑA POR PREGUNTA =============================
 
-# 1️⃣ Obtener pregunta por email
+#  Obtener pregunta por email
 @user_bp.route('/recuperar/pregunta', methods=['POST'])
 def obtener_pregunta():
     datos = request.json
@@ -140,7 +140,7 @@ def obtener_pregunta():
     }), 200
 
 
-# 2️⃣ Verificar respuesta de seguridad
+#  Verificar respuesta de seguridad
 @user_bp.route('/recuperar/verificar', methods=['POST'])
 def verificar_respuesta():
     datos = request.json
@@ -167,7 +167,7 @@ def verificar_respuesta():
     return jsonify({"mensaje": "Respuesta correcta"}), 200
 
 
-# 3️⃣ Resetear contraseña SOLO si la respuesta es correcta
+#  Resetear contraseña SOLO si la respuesta es correcta
 @user_bp.route('/recuperar/reset', methods=['PUT'])
 def reset_password():
     datos = request.json

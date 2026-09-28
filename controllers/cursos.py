@@ -5,16 +5,16 @@ from bson.objectid import ObjectId
 def serializar_curso(curso):
     profesor_id = str(curso["profesor"])
     
-    print(f"🔍 Buscando profesor con ID: {profesor_id}")
+    print(f" Buscando profesor con ID: {profesor_id}")
     
     usuario = usuarios_collection.find_one({"_id": ObjectId(profesor_id)})
     
     nombre_profesor = "Desconocido"
     if usuario:
         nombre_profesor = f"{usuario.get('nombre', '')} {usuario.get('apellidop', '')}"
-        print(f"✅ Profesor encontrado: {nombre_profesor}")
+        print(f" Profesor encontrado: {nombre_profesor}")
     else:
-        print(f"⚠️ Profesor NO encontrado para ID: {profesor_id}")
+        print(f" Profesor NO encontrado para ID: {profesor_id}")
 
     return {
         "id": str(curso["_id"]),

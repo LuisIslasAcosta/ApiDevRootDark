@@ -8,10 +8,10 @@ ventas_dt_bp = Blueprint("ventas_dt", __name__)
 @jwt_required()
 def ventas_decision_tree_route():
 
-    # 🔥 OBTENER USUARIO LOGGEADO
+    #  OBTENER USUARIO LOGGEADO
     profesor_id = get_jwt_identity()
 
-    # 🔥 PASARLO AL CONTROLLER
+    #  PASARLO AL CONTROLLER
     resultado = analizar_ventas_decision_tree(profesor_id)
 
     return jsonify(resultado), 200

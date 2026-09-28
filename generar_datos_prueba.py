@@ -145,7 +145,7 @@ for alumno_id in alumnos_creados:
             {"$set": {"fecha": ultima_fecha}}
         )
 
-print("\n✅ Datos de prueba generados exitosamente!")
+print("\n Datos de prueba generados exitosamente!")
 print(f"   - {len(alumnos_creados)} alumnos nuevos")
 print(f"   - {inscripciones_creadas} inscripciones")
 print(f"   - {respuestas_creadas} respuestas con calificaciones")

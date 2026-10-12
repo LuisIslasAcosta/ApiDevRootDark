@@ -22,7 +22,7 @@ joblib==1.5.3
 MarkupSafe==3.0.3
 numpy==2.0.2
 openpyxl==3.1.5
-packaging @ file:///home/task_176104877067765/conda-bld/packaging_1761049113113/work
+packaging==24.2
 pandas==2.3.3
 pluggy==1.6.0
 py4j==0.10.9.7

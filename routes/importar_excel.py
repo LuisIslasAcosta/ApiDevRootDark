@@ -1,28 +1,27 @@
-import pandas as pd
 from flask import Blueprint, request, jsonify
-from config.config import preguntas_collection
+from bson.objectid import ObjectId
+from config.config import preguntas_collection, examenes_collection
+from utils.excel_preguntas import leer_preguntas, ErrorExcel
 
 excel_bp = Blueprint("excel_bp", __name__)
 
+
 @excel_bp.route("/preguntas/importar_excel", methods=["POST"])
 def importar_excel():
-    archivo = request.files.get("archivo")
-    examen_id = request.form.get("examen_id")
+    """Agrega a un examen existente las preguntas de un Excel."""
+    examen_id = (request.form.get("examen_id") or "").strip()
 
-    df = pd.read_excel(archivo)
+    if not ObjectId.is_valid(examen_id) or not examenes_collection.find_one({"_id": ObjectId(examen_id)}):
+        return jsonify({"mensaje": "El examen no existe."}), 404
 
-    for _, fila in df.iterrows():
-        preguntas_collection.insert_one({
-            "examen_id": examen_id,
-            "tipo": "multiple",
-            "enunciado": fila["pregunta"],
-            "opciones": [
-                fila["opcion1"],
-                fila["opcion2"],
-                fila["opcion3"],
-                fila["opcion4"]
-            ],
-            "respuesta_correcta": fila["respuesta_correcta"]
-        })
+    try:
+        preguntas = leer_preguntas(request.files.get("archivo"))
+    except ErrorExcel as e:
+        return jsonify({"mensaje": str(e)}), 400
 
-    return jsonify({"mensaje": "Preguntas importadas correctamente"}), 201
+    preguntas_collection.insert_many([{**p, "examen_id": examen_id} for p in preguntas])
+
+    return jsonify({
+        "mensaje": f"Se importaron {len(preguntas)} preguntas correctamente.",
+        "importadas": len(preguntas),
+    }), 201

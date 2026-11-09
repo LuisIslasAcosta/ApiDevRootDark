@@ -11,7 +11,9 @@ from controllers.user import (
     obtener_usuarios_recientes
 )
 
-from models.User import registrar_usuario, actualizar_contraseña
+from models.User import registrar_usuario, actualizar_contraseña, buscar_por_email
+from utils.correo import leer_token_verificacion, enviar_correo_verificacion, correo_configurado
+from datetime import datetime, timedelta
 from config.config import usuarios_collection
 from utils.hash_utils import verificar_hash
 
@@ -28,6 +30,13 @@ def login():
         return jsonify({"mensaje": "El correo y la contraseña son necesarios"}), 400
 
     resultado = validar_login(email, password)
+
+    if resultado and resultado.get("error") == "correo_no_verificado":
+        return jsonify({
+            "mensaje": "Confirma tu correo antes de iniciar sesión. Revisa tu bandeja de entrada o spam.",
+            "codigo": "correo_no_verificado",
+            "email": resultado.get("email"),
+        }), 403
 
     if resultado:
         return jsonify(resultado), 200
@@ -57,6 +66,60 @@ def registrar():
     )
 
     return resultado, status_code
+
+
+# ============================= CONFIRMAR CORREO =============================
+@user_bp.route('/verificar-correo', methods=['POST'])
+def verificar_correo():
+    token = (request.json or {}).get("token", "")
+    email, error = leer_token_verificacion(token)
+
+    if error == "expirado":
+        return jsonify({"mensaje": "El enlace ya expiró. Pide uno nuevo desde el inicio de sesión.", "codigo": "expirado"}), 400
+    if error:
+        return jsonify({"mensaje": "El enlace no es válido.", "codigo": "invalido"}), 400
+
+    usuario = buscar_por_email(email)
+    if not usuario:
+        return jsonify({"mensaje": "La cuenta ya no existe.", "codigo": "invalido"}), 404
+
+    if usuario.get("verificado") is not False:
+        return jsonify({"mensaje": "Tu correo ya estaba confirmado. Ya puedes iniciar sesión.", "codigo": "ya_verificado"}), 200
+
+    usuarios_collection.update_one(
+        {"_id": usuario["_id"]},
+        {"$set": {"verificado": True, "fecha_verificacion": datetime.utcnow()}}
+    )
+    return jsonify({"mensaje": "¡Correo confirmado! Ya puedes iniciar sesión.", "codigo": "verificado"}), 200
+
+
+@user_bp.route('/reenviar-verificacion', methods=['POST'])
+def reenviar_verificacion():
+    email = ((request.json or {}).get("email") or "").strip()
+    respuesta_generica = {"mensaje": "Si la cuenta existe y no está confirmada, te enviamos un nuevo correo."}
+
+    if not email:
+        return jsonify({"mensaje": "Escribe tu correo."}), 400
+    if not correo_configurado():
+        return jsonify({"mensaje": "El envío de correos no está disponible en este momento."}), 503
+
+    usuario = buscar_por_email(email)
+    if not usuario or usuario.get("verificado") is not False:
+        return jsonify(respuesta_generica), 200
+
+    # Evitar abusos: un correo por minuto
+    ultimo = usuario.get("ultimo_envio_verificacion")
+    if ultimo and datetime.utcnow() - ultimo < timedelta(seconds=60):
+        return jsonify({"mensaje": "Espera un minuto antes de pedir otro correo."}), 429
+
+    try:
+        enviar_correo_verificacion(usuario["email"], usuario.get("nombre"))
+    except Exception as e:
+        print(f"ERROR al reenviar verificación a {email}: {e}")
+        return jsonify({"mensaje": "No se pudo enviar el correo. Intenta más tarde."}), 502
+
+    usuarios_collection.update_one({"_id": usuario["_id"]}, {"$set": {"ultimo_envio_verificacion": datetime.utcnow()}})
+    return jsonify(respuesta_generica), 200
 
 
 # ============================= ADMIN: ACTUALIZAR CONTRASEÑA =============================

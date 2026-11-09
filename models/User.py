@@ -3,6 +3,17 @@ from config.config import usuarios_collection
 from utils.hash_utils import hash_contraseña
 from flask import jsonify
 from bson.objectid import ObjectId
+from datetime import datetime
+from utils.correo import (
+    dominio_recibe_correo, correo_configurado, enviar_correo_verificacion
+)
+
+
+def buscar_por_email(email):
+    """Busca un usuario por correo sin distinguir mayúsculas."""
+    return usuarios_collection.find_one(
+        {"email": {"$regex": f"^{re.escape((email or '').strip())}$", "$options": "i"}}
+    )
 
 def registrar_usuario(
     nombre, apellidop, apellidom, fecha_nacimiento,
@@ -15,9 +26,12 @@ def registrar_usuario(
     if password != verificar_password:
         return jsonify({"mensaje": "Las contraseñas no coinciden"}), 400
 
-    # Validar email
-    if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
+    # Validar email (formato y que el dominio realmente reciba correos)
+    email = (email or "").strip().lower()
+    if not re.match(r"^[\w\.+-]+@[\w\.-]+\.\w{2,}$", email):
         return jsonify({"mensaje": "Formato de correo electrónico inválido"}), 400
+    if not dominio_recibe_correo(email):
+        return jsonify({"mensaje": "Ese correo no existe: el dominio no recibe correos. Revisa que esté bien escrito."}), 400
 
     # Validar seguridad contraseña
     if len(password) < 12:
@@ -34,7 +48,7 @@ def registrar_usuario(
         return jsonify({"mensaje": "Evita usar palabras comunes"}), 400
 
     # Verificar correo único
-    if usuarios_collection.find_one({"email": email}):
+    if buscar_por_email(email):
         return jsonify({"mensaje": "El correo electrónico ya está registrado"}), 400
 
     # Generar matrícula incremental
@@ -64,7 +78,10 @@ def registrar_usuario(
         "foto_perfil": foto_perfil,
         "pregunta_seguridad": pregunta_seguridad,
         "respuesta_seguridad": respuesta_hash,
-        "rol": rol_asignado
+        "rol": rol_asignado,
+        # Si el envío de correos no está configurado, la cuenta queda activa como antes
+        "verificado": not correo_configurado(),
+        "fecha_registro": datetime.utcnow()
     }
 
     if imagen_binaria and imagen_nombre and imagen_tipo:
@@ -76,14 +93,32 @@ def registrar_usuario(
 
     try:
         usuarios_collection.insert_one(nuevo_usuario)
-        return jsonify({
-            "mensaje": f"Usuario registrado correctamente",
-            "matricula": nueva_matricula,
-            "rol": rol_asignado
-        }), 201
-
     except Exception as e:
         return jsonify({"mensaje": f"Error al registrar usuario: {str(e)}"}), 500
+
+    respuesta = {
+        "matricula": nueva_matricula,
+        "rol": rol_asignado,
+        "email": email,
+        "requiere_verificacion": not nuevo_usuario["verificado"],
+    }
+
+    if nuevo_usuario["verificado"]:
+        print("ADVERTENCIA: MAIL_USERNAME/MAIL_PASSWORD no configurados; la cuenta se activó sin confirmar el correo.")
+        respuesta["mensaje"] = "Usuario registrado correctamente. Ya puedes iniciar sesión."
+        return jsonify(respuesta), 201
+
+    try:
+        enviar_correo_verificacion(email, nombre)
+        usuarios_collection.update_one({"email": email}, {"$set": {"ultimo_envio_verificacion": datetime.utcnow()}})
+        respuesta["mensaje"] = f"¡Cuenta creada! Te enviamos un correo a {email} para confirmarla. Revisa también la carpeta de spam."
+        respuesta["correo_enviado"] = True
+    except Exception as e:
+        print(f"ERROR al enviar correo de verificación a {email}: {e}")
+        respuesta["mensaje"] = ("Tu cuenta se creó, pero no pudimos enviar el correo de confirmación. "
+                                "Intenta reenviarlo desde la pantalla de inicio de sesión.")
+        respuesta["correo_enviado"] = False
+    return jsonify(respuesta), 201
 
 
 def actualizar_contraseña(usuario_id, nueva_contraseña):

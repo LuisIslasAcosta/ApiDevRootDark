@@ -49,3 +49,4 @@ urllib3==2.7.0
 Werkzeug==3.1.5
 zipp==3.23.0
 setuptools
+google-auth==2.43.0

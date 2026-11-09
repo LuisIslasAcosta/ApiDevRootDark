@@ -11,7 +11,11 @@ from controllers.user import (
     obtener_usuarios_recientes
 )
 
-from models.User import registrar_usuario, actualizar_contraseña, buscar_por_email
+from models.User import registrar_usuario, actualizar_contraseña, buscar_por_email, obtener_o_crear_usuario_google
+from controllers.auth import respuesta_login
+import os
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 from utils.correo import leer_token_verificacion, enviar_correo_verificacion, correo_configurado
 from datetime import datetime, timedelta
 from config.config import usuarios_collection
@@ -42,6 +46,40 @@ def login():
         return jsonify(resultado), 200
     else:
         return jsonify({"mensaje": "Correo o contraseña incorrectos"}), 401
+
+
+# ============================= LOGIN CON GOOGLE =============================
+_google_request = google_requests.Request()
+
+
+@user_bp.route('/login/google', methods=['POST'])
+def login_google():
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    if not client_id:
+        return jsonify({"mensaje": "El inicio de sesión con Google no está configurado."}), 503
+
+    credencial = (request.json or {}).get("credential")
+    if not credencial:
+        return jsonify({"mensaje": "Falta la credencial de Google."}), 400
+
+    try:
+        # Verifica firma, vigencia y que el token sea para ESTA aplicación
+        datos = google_id_token.verify_oauth2_token(credencial, _google_request, client_id)
+    except ValueError:
+        return jsonify({"mensaje": "No se pudo verificar tu cuenta de Google. Intenta de nuevo."}), 401
+    except Exception as e:
+        print(f"ERROR al contactar a Google: {e}")
+        return jsonify({"mensaje": "No se pudo contactar a Google. Intenta en un momento."}), 503
+
+    if datos.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+        return jsonify({"mensaje": "Credencial de Google no válida."}), 401
+    if not datos.get("email") or not datos.get("email_verified"):
+        return jsonify({"mensaje": "Tu cuenta de Google no tiene un correo verificado."}), 401
+
+    usuario, es_nuevo = obtener_o_crear_usuario_google(datos)
+    respuesta = respuesta_login(usuario)
+    respuesta["nuevo"] = es_nuevo
+    return jsonify(respuesta), 201 if es_nuevo else 200
 
 
 # ============================= REGISTRO =============================

@@ -1,3 +1,4 @@
+import secrets
 import re
 from config.config import usuarios_collection
 from utils.hash_utils import hash_contraseña
@@ -130,3 +131,57 @@ def actualizar_contraseña(usuario_id, nueva_contraseña):
     )
 
     return resultado.modified_count > 0
+
+
+def _siguiente_matricula_y_rol():
+    ultimo = usuarios_collection.find_one({}, sort=[("matricula", -1)])
+    matricula = f"{int(ultimo['matricula']) + 1:09d}" if ultimo else "000000001"
+    rol = "usuario" if usuarios_collection.find_one({"rol": "administrador"}) else "administrador"
+    return matricula, rol
+
+
+def obtener_o_crear_usuario_google(datos_google):
+    """
+    Usa los datos verificados por Google para entrar o crear la cuenta.
+    datos_google: email, given_name, family_name, name, picture, sub
+    """
+    email = (datos_google.get("email") or "").strip().lower()
+    usuario = buscar_por_email(email)
+
+    if usuario:
+        cambios = {"google_id": datos_google.get("sub")}
+        # Google ya comprobó que el correo es suyo
+        if usuario.get("verificado") is False:
+            cambios.update({"verificado": True, "fecha_verificacion": datetime.utcnow()})
+        if not usuario.get("foto_url") and datos_google.get("picture"):
+            cambios["foto_url"] = datos_google.get("picture")
+        usuarios_collection.update_one({"_id": usuario["_id"]}, {"$set": cambios})
+        return usuarios_collection.find_one({"_id": usuario["_id"]}), False
+
+    apellidos = (datos_google.get("family_name") or "").split(" ", 1)
+    matricula, rol = _siguiente_matricula_y_rol()
+    nuevo = {
+        "matricula": matricula,
+        "nombre": datos_google.get("given_name") or datos_google.get("name") or email.split("@")[0],
+        "apellidop": apellidos[0] if apellidos else "",
+        "apellidom": apellidos[1] if len(apellidos) > 1 else "",
+        "fecha_nacimiento": "",
+        "pais": "",
+        "ciudad": "",
+        "email": email,
+        "telefono": "",
+        # Contraseña aleatoria: estas cuentas entran con Google
+        "password": hash_contraseña(secrets.token_urlsafe(32)),
+        "foto_perfil": None,
+        "foto_url": datos_google.get("picture"),
+        "pregunta_seguridad": "",
+        "respuesta_seguridad": "",
+        "rol": rol,
+        "verificado": True,
+        "proveedor": "google",
+        "google_id": datos_google.get("sub"),
+        "fecha_registro": datetime.utcnow(),
+    }
+    resultado = usuarios_collection.insert_one(nuevo)
+    nuevo["_id"] = resultado.inserted_id
+    return nuevo, True

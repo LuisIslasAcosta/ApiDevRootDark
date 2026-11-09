@@ -21,15 +21,18 @@ def validar_login(email, password):
     if usuario.get("verificado") is False:
         return {"error": "correo_no_verificado", "email": usuario.get("email")}
 
-    #  Crear token JWT
+    return respuesta_login(usuario)
+
+
+def respuesta_login(usuario):
+    """Token JWT y datos públicos del usuario (login normal y con Google)."""
     access_token = create_access_token(identity=str(usuario["_id"]))
 
-    #  Procesar foto de perfil
     foto_perfil = usuario.get("foto_perfil")
     if isinstance(foto_perfil, bytes):
         foto_perfil = base64.b64encode(foto_perfil).decode("utf-8")
-
-    rol = usuario.get("rol", "usuario")
+    # Cuentas de Google: su foto de perfil (URL) si no subieron una propia
+    foto_perfil = foto_perfil or usuario.get("foto_url")
 
     return {
         "access_token": access_token,
@@ -38,6 +41,6 @@ def validar_login(email, password):
             "nombre": usuario.get("nombre"),
             "email": usuario.get("email"),
             "foto_perfil": foto_perfil,
-            "rol": rol
+            "rol": usuario.get("rol", "usuario")
         }
     }

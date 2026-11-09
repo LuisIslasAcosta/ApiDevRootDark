@@ -15,8 +15,9 @@ import os
 
 curso_bp = Blueprint('curso_bp', __name__)
 
-UPLOAD_FOLDER_VIDEOS = "uploads/videos"
-UPLOAD_FOLDER_IMAGENES = "uploads/imagenes"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_FOLDER_VIDEOS = os.path.join(BASE_DIR, "uploads", "videos")
+UPLOAD_FOLDER_IMAGENES = os.path.join(BASE_DIR, "uploads", "imagenes")
 
 os.makedirs(UPLOAD_FOLDER_VIDEOS, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_IMAGENES, exist_ok=True)

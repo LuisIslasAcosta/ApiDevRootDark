@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 import os
+import secrets
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Blueprints
 from routes.User_routes import user_bp
@@ -30,10 +34,23 @@ from routes.segmentacion_alumnos_routes import segmentacion_alumnos_bp
 from routes.proxy_routes import proxy_bp
 
 app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'qwertydark444'
+# Clave JWT desde .env (nunca escrita en el código)
+jwt_secret = os.getenv('JWT_SECRET_KEY')
+if not jwt_secret:
+    jwt_secret = secrets.token_hex(32)
+    print("ADVERTENCIA: JWT_SECRET_KEY no está en .env; se generó una temporal "
+          "(las sesiones se cerrarán cada vez que se reinicie la API).")
+app.config['JWT_SECRET_KEY'] = jwt_secret
+
+# Tamaño máximo de archivos subidos (MB), configurable desde .env
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_MB', '200')) * 1024 * 1024
+
+# Orígenes permitidos (separados por coma en .env)
+cors_origins = [o.strip() for o in os.getenv(
+    'CORS_ORIGINS', 'http://localhost:5173').split(',') if o.strip()]
 
 CORS(app,
-     resources={r"/api/*": {"origins": "*"}},
+     resources={r"/api/*": {"origins": cors_origins}},
      supports_credentials=True)
 
 jwt = JWTManager(app)
@@ -78,4 +95,5 @@ def home():
     return render_template('correcto.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', '5000')),
+            debug=os.getenv('FLASK_DEBUG', '0') == '1')

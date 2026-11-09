@@ -95,8 +95,5 @@ def eliminar(leccion_id):
 # FUNCIÓN PREFLIGHT
 # =========================
 def _preflight_response():
-    response = make_response()
-    response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS")
-    return response
+    # Los encabezados CORS los agrega flask_cors (configurado en app.py)
+    return make_response("", 204)

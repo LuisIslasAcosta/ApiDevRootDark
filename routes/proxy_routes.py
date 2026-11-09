@@ -1,8 +1,40 @@
 from flask import Blueprint, request, jsonify, Response
 import requests
+import socket
+import ipaddress
+from urllib.parse import urlparse, urljoin
 from flask_cors import cross_origin
 
 proxy_bp = Blueprint("proxy_bp", __name__)
+
+
+def _url_es_segura(url):
+    """Solo permite URLs http/https públicas (bloquea localhost y la red local)."""
+    try:
+        partes = urlparse(url)
+        if partes.scheme not in ("http", "https") or not partes.hostname:
+            return False
+        for info in socket.getaddrinfo(partes.hostname, None):
+            ip = ipaddress.ip_address(info[4][0])
+            if (ip.is_private or ip.is_loopback or ip.is_link_local
+                    or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _descargar_segura(url, headers, max_redirecciones=5):
+    """Descarga la URL validando también cada redirección."""
+    for _ in range(max_redirecciones + 1):
+        if not _url_es_segura(url):
+            return None
+        resp = requests.get(url, headers=headers, timeout=15, allow_redirects=False)
+        if resp.is_redirect or resp.status_code in (301, 302, 303, 307, 308):
+            url = urljoin(url, resp.headers.get("Location", ""))
+            continue
+        return resp
+    return None
 
 @proxy_bp.route("/proxy/imagen", methods=["GET"])
 @cross_origin()
@@ -30,18 +62,23 @@ def proxy_imagen():
         }
         
         print(f"DEBUG PROXY: Haciendo request a: {url}")
-        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+        response = _descargar_segura(url, headers)
+        if response is None:
+            return jsonify({"error": "URL no permitida"}), 400
         
         print(f"DEBUG PROXY: Status code: {response.status_code}")
         print(f"DEBUG PROXY: Content-Type: {response.headers.get('Content-Type')}")
         
+        tipo = response.headers.get('Content-Type', '')
+        if response.status_code == 200 and not tipo.startswith('image/'):
+            return jsonify({"error": "La URL no es una imagen"}), 400
+
         if response.status_code == 200:
             print(f"DEBUG PROXY: Imagen obtenida exitosamente, tamaño: {len(response.content)} bytes")
             return Response(
                 response.content,
                 mimetype=response.headers.get('Content-Type', 'image/jpeg'),
                 headers={
-                    'Access-Control-Allow-Origin': '*',
                     'Cache-Control': 'public, max-age=86400'
                 }
             )

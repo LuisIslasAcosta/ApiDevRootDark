@@ -2,6 +2,7 @@ from bson.objectid import ObjectId
 from config.config import respuestas_collection
 from config.mongo_spark_conexion import get_spark_session
 import numpy as np
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType
 
 def analizar_respuestas(alumno_id):
     spark = get_spark_session()
@@ -19,13 +20,22 @@ def analizar_respuestas(alumno_id):
     if not respuestas:
         return {"error": "El alumno no tiene respuestas registradas."}
 
-    # Limpieza
+    # Limpieza: solo los campos necesarios con tipos fijos (Spark no entiende ObjectId)
+    filas = []
     for r in respuestas:
-        r["_id"] = str(r["_id"])
-        r["alumno_id"] = str(r["alumno_id"])
-        r["examen_id"] = str(r["examen_id"])
+        try:
+            filas.append((str(r["examen_id"]), float(r.get("calificacion") or 0)))
+        except (KeyError, TypeError, ValueError):
+            continue
 
-    df = spark.createDataFrame(respuestas)
+    if not filas:
+        return {"error": "El alumno no tiene respuestas registradas."}
+
+    esquema = StructType([
+        StructField("examen_id", StringType(), False),
+        StructField("calificacion", DoubleType(), False),
+    ])
+    df = spark.createDataFrame(filas, schema=esquema)
 
     # ================= HISTORIAL =================
     califs = df.select("calificacion").rdd.flatMap(lambda x: x).collect()
@@ -70,7 +80,7 @@ def analizar_respuestas(alumno_id):
         nivel_futuro = "Avanzado"
 
     # ================= RESPUESTA =================
-    historial = df.select("examen_id", "calificacion").toPandas().to_dict("records")
+    historial = [row.asDict() for row in df.select("examen_id", "calificacion").collect()]
 
     return {
         "alumno_id": alumno_id,

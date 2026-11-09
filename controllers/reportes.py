@@ -1,62 +1,69 @@
 from config.config import respuestas_collection, usuarios_collection, examenes_collection, cursos_collection
 from bson.objectid import ObjectId
 
-def obtener_reportes_profesor(profesor_id):
-    reportes = []
 
+def _con_objectid(valores):
+    """Devuelve cada id como texto y como ObjectId (la BD tiene ambos formatos)."""
+    salida = []
+    for v in valores:
+        salida.append(str(v))
+        try:
+            salida.append(ObjectId(str(v)))
+        except Exception:
+            pass
+    return salida
+
+
+def obtener_reportes_profesor(profesor_id):
+    """Resultados de exámenes de los cursos del profesor (consultas en lote)."""
     try:
-        profesor_object_id = ObjectId(profesor_id)
-    except:
+        ObjectId(str(profesor_id))
+    except Exception:
         print(" profesor_id inválido")
         return []
 
-    respuestas = respuestas_collection.find()
+    # 1) Cursos del profesor
+    cursos = {
+        str(c["_id"]): c
+        for c in cursos_collection.find(
+            {"profesor": {"$in": _con_objectid([profesor_id])}},
+            {"nombre": 1})
+    }
+    if not cursos:
+        return []
 
+    # 2) Exámenes de esos cursos
+    examenes = {
+        str(e["_id"]): e
+        for e in examenes_collection.find(
+            {"curso_id": {"$in": _con_objectid(cursos.keys())}},
+            {"titulo": 1, "curso_id": 1, "fecha": 1})
+    }
+    if not examenes:
+        return []
+
+    # 3) Respuestas de esos exámenes
+    respuestas = list(respuestas_collection.find(
+        {"examen_id": {"$in": _con_objectid(examenes.keys())}}))
+
+    # 4) Alumnos involucrados
+    alumnos_ids = {str(r.get("alumno_id")) for r in respuestas if r.get("alumno_id")}
+    alumnos = {
+        str(u["_id"]): u
+        for u in usuarios_collection.find(
+            {"_id": {"$in": [ObjectId(a) for a in alumnos_ids if ObjectId.is_valid(a)]}},
+            {"nombre": 1, "email": 1})
+    }
+
+    reportes = []
     for r in respuestas:
-        #  Convertir examen_id correctamente
-        try:
-            examen_id = ObjectId(r["examen_id"])
-        except:
-            print(" examen_id inválido:", r.get("examen_id"))
-            continue
-
-        examen = examenes_collection.find_one({"_id": examen_id})
+        examen = examenes.get(str(r.get("examen_id")))
         if not examen:
-            print(" examen no encontrado")
             continue
-
-        #  Convertir curso_id correctamente
-        try:
-            curso_id = ObjectId(examen["curso_id"])
-        except:
-            print(" curso_id inválido")
-            continue
-
-        curso = cursos_collection.find_one({"_id": curso_id})
+        curso = cursos.get(str(examen.get("curso_id")))
         if not curso:
-            print(" curso no encontrado")
             continue
-
-        #  CAMPO REAL DE LA DB
-        curso_profesor = curso.get("profesor")
-
-        try:
-            curso_profesor = ObjectId(curso_profesor)
-        except:
-            print(" profesor inválido en curso")
-            continue
-
-        #  Si no coincide → ignorar
-        if curso_profesor != profesor_object_id:
-            continue
-
-        #  Buscar alumno
-        try:
-            alumno_id = ObjectId(r["alumno_id"])
-        except:
-            alumno_id = None
-
-        alumno = usuarios_collection.find_one({"_id": alumno_id}) if alumno_id else None
+        alumno = alumnos.get(str(r.get("alumno_id")))
 
         reportes.append({
             "alumno": alumno.get("nombre", "Usuario eliminado") if alumno else "Usuario eliminado",

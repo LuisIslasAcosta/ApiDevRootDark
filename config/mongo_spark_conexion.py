@@ -1,12 +1,29 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, ArrayType, BooleanType
 import os
+from bson.objectid import ObjectId
 from dotenv import load_dotenv
 from config.config import cursos_collection
 from pyspark.sql.functions import size, col
 from pyspark.ml.feature import VectorAssembler
 
 load_dotenv()
+
+# --- Entorno de Spark ---
+# 1) Los procesos de Spark deben usar el MISMO Python del entorno virtual
+#    (si no, usan el python3 del sistema y fallan por versión distinta).
+import sys
+os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
+os.environ.setdefault("PYSPARK_DRIVER_PYTHON", sys.executable)
+
+# 2) Spark 3.4 solo funciona con Java 8, 11 o 17. Si JAVA_HOME no está definido,
+#    se busca Java 17 en las rutas habituales de Ubuntu.
+if not os.environ.get("JAVA_HOME"):
+    for _ruta in ("/usr/lib/jvm/java-17-openjdk-amd64", "/usr/lib/jvm/java-17-openjdk-arm64",
+                  "/usr/lib/jvm/java-11-openjdk-amd64"):
+        if os.path.isdir(_ruta):
+            os.environ["JAVA_HOME"] = _ruta
+            break
 
 def get_spark_session():
     """Obtiene o crea una sesión de Spark reutilizable"""
@@ -56,21 +73,26 @@ def get_dataframe(profesor_id=None):
     # Filtrar cursos por profesor si se pasa el ID
     query = {}
     if profesor_id:
-        query["profesor"] = profesor_id
+        valores = [str(profesor_id)]
+        try:
+            valores.append(ObjectId(str(profesor_id)))
+        except Exception:
+            pass
+        query["profesor"] = {"$in": valores}
 
     try:
         cursos = list(cursos_collection.find(query))
     except Exception as e:
         print(f"ERROR al obtener cursos de MongoDB: {str(e)}")
         try:
-            spark.stop()
+            pass  # Spark se mantiene activo y se reutiliza entre peticiones
         except:
             pass
         return None, None, None
 
     if not cursos:
         try:
-            spark.stop()
+            pass  # Spark se mantiene activo y se reutiliza entre peticiones
         except:
             pass
         return spark, None, None

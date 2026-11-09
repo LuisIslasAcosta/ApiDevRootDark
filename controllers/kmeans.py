@@ -22,14 +22,14 @@ def ejecutar_kmeans(profesor_id=None, k=3):
         total = df_vector.count()
     except Exception as e:
         try:
-            spark.stop()
+            pass  # Spark se mantiene activo y se reutiliza entre peticiones
         except:
             pass
         return {"error": f"Error al contar datos: {str(e)}"}
     
     if total < 3:
         try:
-            spark.stop()
+            pass  # Spark se mantiene activo y se reutiliza entre peticiones
         except:
             pass
         return {"error": f"No hay suficientes datos para clustering. Se necesitan al menos 3, encontrados: {total}"}
@@ -110,14 +110,14 @@ def metodo_codo(profesor_id=None, k_range=(2, 10)):
         total = df_vector.count()
     except Exception as e:
         try:
-            spark.stop()
+            pass  # Spark se mantiene activo y se reutiliza entre peticiones
         except:
             pass
         return {"error": f"Error al contar datos: {str(e)}"}
     
     if total < 3:
         try:
-            spark.stop()
+            pass  # Spark se mantiene activo y se reutiliza entre peticiones
         except:
             pass
         return {"error": f"No hay suficientes datos para clustering. Se necesitan al menos 3, encontrados: {total}"}
@@ -171,7 +171,7 @@ def metodo_codo(profesor_id=None, k_range=(2, 10)):
     }
     
     try:
-        spark.stop()
+        pass  # Spark se mantiene activo y se reutiliza entre peticiones
     except:
         pass
     

@@ -1,6 +1,12 @@
 from config.config import niveles_collection
 from bson import ObjectId
 
+def _id_flexible(valor):
+    """Coincide con el id guardado como texto o como ObjectId."""
+    valor = str(valor)
+    return {"$in": [valor] + ([ObjectId(valor)] if ObjectId.is_valid(valor) else [])}
+
+
 def serializar_nivel(n):
     return {
         "id": str(n["_id"]),
@@ -11,10 +17,7 @@ def serializar_nivel(n):
 
 
 def obtener_niveles_por_curso(curso_id):
-    # Convertir string a ObjectId si es necesario
-    if isinstance(curso_id, str):
-        curso_id = ObjectId(curso_id)
-    niveles = niveles_collection.find({"curso_id": curso_id}).sort("orden", 1)
+    niveles = niveles_collection.find({"curso_id": _id_flexible(curso_id)}).sort("orden", 1)
     return [serializar_nivel(n) for n in niveles]
 
 def eliminar_nivel(nivel_id):

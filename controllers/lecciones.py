@@ -4,6 +4,12 @@ from bson.objectid import ObjectId
 # =========================
 # SERIALIZAR LECCIÓN
 # =========================
+def _id_flexible(valor):
+    """Coincide con el id guardado como texto o como ObjectId."""
+    valor = str(valor)
+    return {"$in": [valor] + ([ObjectId(valor)] if ObjectId.is_valid(valor) else [])}
+
+
 def serializar_leccion(leccion):
     return {
         "id": str(leccion["_id"]),
@@ -40,19 +46,13 @@ def eliminar_leccion(leccion_id):
 # OBTENER LECCIONES POR CURSO
 # =========================
 def obtener_lecciones_por_curso(curso_id):
-    # Convertir string a ObjectId si es necesario
-    if isinstance(curso_id, str):
-        curso_id = ObjectId(curso_id)
-    lecciones = lecciones_collection.find({"curso_id": curso_id})
+    lecciones = lecciones_collection.find({"curso_id": _id_flexible(curso_id)})
     return [serializar_leccion(l) for l in lecciones]
 
 # =========================
 # OBTENER LECCIONES POR NIVEL
 # =========================
 def obtener_lecciones_por_nivel(nivel_id):
-    # Convertir string a ObjectId si es necesario
-    if isinstance(nivel_id, str):
-        nivel_id = ObjectId(nivel_id)
-    lecciones = lecciones_collection.find({"nivel_id": nivel_id})
+    lecciones = lecciones_collection.find({"nivel_id": _id_flexible(nivel_id)})
     return [serializar_leccion(l) for l in lecciones]
 

@@ -2,9 +2,10 @@ import re
 from config.config import usuarios_collection
 from utils.hash_utils import verificar_hash
 from flask_jwt_extended import create_access_token
+from utils.terminos import terminos_pendientes, info_pendiente, registrar_aceptacion, version_vigente
 import base64
 
-def validar_login(email, password):
+def validar_login(email, password, acepta_terminos=False):
     usuario = usuarios_collection.find_one(
         {"email": {"$regex": f"^{re.escape((email or '').strip())}$", "$options": "i"}}
     )
@@ -21,7 +22,22 @@ def validar_login(email, password):
     if usuario.get("verificado") is False:
         return {"error": "correo_no_verificado", "email": usuario.get("email")}
 
+    #  Términos y condiciones: hay que aceptar la versión vigente para entrar
+    resultado = revisar_terminos(usuario, acepta_terminos)
+    if resultado:
+        return resultado
+
     return respuesta_login(usuario)
+
+
+def revisar_terminos(usuario, acepta_terminos):
+    """None si puede entrar; si no, el aviso de términos pendientes."""
+    if not terminos_pendientes(usuario):
+        return None
+    if acepta_terminos is True:
+        usuario["terminos_version"] = registrar_aceptacion(usuario["_id"])
+        return None
+    return {"error": "terminos_pendientes", **info_pendiente(usuario)}
 
 
 def respuesta_login(usuario):
@@ -41,6 +57,7 @@ def respuesta_login(usuario):
             "nombre": usuario.get("nombre"),
             "email": usuario.get("email"),
             "foto_perfil": foto_perfil,
-            "rol": usuario.get("rol", "usuario")
+            "rol": usuario.get("rol", "usuario"),
+            "terminos_version": usuario.get("terminos_version") or version_vigente(),
         }
     }

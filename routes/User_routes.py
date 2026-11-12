@@ -2,7 +2,9 @@ from flask import Blueprint, request, jsonify
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
 
-from controllers.auth import validar_login
+from controllers.auth import validar_login, revisar_terminos
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils.terminos import version_vigente, terminos_pendientes, info_pendiente, registrar_aceptacion
 from controllers.user import (
     obtener_usuarios,
     obtener_usuario_por_id,
@@ -33,7 +35,11 @@ def login():
     if not email or not password:
         return jsonify({"mensaje": "El correo y la contraseña son necesarios"}), 400
 
-    resultado = validar_login(email, password)
+    resultado = validar_login(email, password, datos.get('acepta_terminos') is True)
+
+    if resultado and resultado.get("error") == "terminos_pendientes":
+        resultado.pop("error")
+        return jsonify(resultado), 403
 
     if resultado and resultado.get("error") == "correo_no_verificado":
         return jsonify({
@@ -59,6 +65,7 @@ def login_google():
         return jsonify({"mensaje": "El inicio de sesión con Google no está configurado."}), 503
 
     credencial = (request.json or {}).get("credential")
+    acepta_terminos = (request.json or {}).get("acepta_terminos") is True
     if not credencial:
         return jsonify({"mensaje": "Falta la credencial de Google."}), 400
 
@@ -77,6 +84,10 @@ def login_google():
         return jsonify({"mensaje": "Tu cuenta de Google no tiene un correo verificado."}), 401
 
     usuario, es_nuevo = obtener_o_crear_usuario_google(datos)
+    pendiente = revisar_terminos(usuario, acepta_terminos)
+    if pendiente:
+        pendiente.pop("error")
+        return jsonify(pendiente), 403
     respuesta = respuesta_login(usuario)
     respuesta["nuevo"] = es_nuevo
     return jsonify(respuesta), 201 if es_nuevo else 200
@@ -85,7 +96,11 @@ def login_google():
 # ============================= REGISTRO =============================
 @user_bp.route('/registrar', methods=['POST'])
 def registrar():
-    datos = request.json
+    datos = request.json or {}
+
+    if datos.get('acepta_terminos') is not True:
+        return jsonify({"mensaje": "Debes aceptar los términos y condiciones para crear tu cuenta.",
+                        "codigo": "terminos_requeridos"}), 400
 
     resultado, status_code = registrar_usuario(
         nombre=datos.get('nombre'),
@@ -103,7 +118,44 @@ def registrar():
         telefono=datos.get('telefono')
     )
 
+    if status_code == 201:
+        nuevo = buscar_por_email((datos.get('email') or '').strip())
+        if nuevo:
+            registrar_aceptacion(nuevo["_id"])
+
     return resultado, status_code
+
+
+# ============================= TÉRMINOS Y CONDICIONES =============================
+@user_bp.route('/terminos', methods=['GET'])
+def terminos_vigentes():
+    return jsonify({"version": version_vigente()}), 200
+
+
+@user_bp.route('/terminos/estado', methods=['GET'])
+@jwt_required()
+def terminos_estado():
+    try:
+        usuario = usuarios_collection.find_one({"_id": ObjectId(str(get_jwt_identity()))})
+    except (InvalidId, TypeError):
+        usuario = None
+    if not usuario:
+        return jsonify({"mensaje": "Usuario no encontrado"}), 404
+    if terminos_pendientes(usuario):
+        return jsonify({"pendiente": True, **info_pendiente(usuario)}), 200
+    return jsonify({"pendiente": False, "version": version_vigente()}), 200
+
+
+@user_bp.route('/terminos/aceptar', methods=['POST'])
+@jwt_required()
+def terminos_aceptar():
+    if (request.json or {}).get('acepta_terminos') is not True:
+        return jsonify({"mensaje": "Marca la casilla para aceptar los términos."}), 400
+    try:
+        version = registrar_aceptacion(get_jwt_identity())
+    except (InvalidId, TypeError):
+        return jsonify({"mensaje": "Usuario no válido"}), 400
+    return jsonify({"mensaje": "Términos aceptados", "version": version}), 200
 
 
 # ============================= CONFIRMAR CORREO =============================

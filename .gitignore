@@ -7,3 +7,7 @@ venv/
 
 # Comprobantes de pago (privados)
 comprobantes/
+
+# Usuarios de prueba (contienen contraseñas)
+usuarios_prueba.json
+Credenciales_DevRootDark.pdf

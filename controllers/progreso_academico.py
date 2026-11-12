@@ -373,6 +373,7 @@ def calcular_progreso(alumno_id, datos, inscripcion=None):
         "imagen": _imagen_curso(curso),
         "progreso": progreso,
         "lecciones_vistas": len(lecciones_vistas),
+        "lecciones_vistas_ids": sorted(lecciones_vistas),
         "total_lecciones": total_lecciones,
         "examenes_presentados": len(presentados),
         "total_examenes": total_examenes,
@@ -594,5 +595,71 @@ def alumnos_en_riesgo_profesor(profesor_id, incluir_todos=False):
             },
             "alumnos": alumnos,
         }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def progreso_alumno_curso(alumno_id, curso_id):
+    """Progreso del alumno dentro de un curso (para la página del curso)."""
+    try:
+        curso = cursos_collection.find_one({"_id": ObjectId(str(curso_id))})
+    except Exception:
+        curso = None
+    if not curso:
+        return {"error": "Curso no encontrado"}
+    inscripcion = next(
+        (
+            i for i in inscripciones_collection.find({
+                "alumno_id": {"$in": _variantes_id(alumno_id)},
+                "curso_id": {"$in": _variantes_id(curso_id)},
+            })
+            if i.get("estado", "aceptada") == "aceptada"
+        ),
+        None,
+    )
+    p = calcular_progreso(alumno_id, _datos_curso(curso), inscripcion)
+    profesor = None
+    try:
+        profesor = usuarios_collection.find_one({"_id": ObjectId(str(curso.get("profesor")))})
+    except Exception:
+        pass
+    p["profesor"] = _nombre_usuario(profesor) if profesor else ""
+    p["consejos"] = consejos_para_alumno(p)
+    p["calificacion_aprobatoria"] = CALIFICACION_APROBATORIA
+    return p
+
+
+def resumen_cursos(usuario_id):
+    """Resumen por curso para el profesor (sus cursos) o el administrador (todos)."""
+    try:
+        try:
+            usuario = usuarios_collection.find_one({"_id": ObjectId(str(usuario_id))})
+        except Exception:
+            usuario = None
+        rol = (usuario or {}).get("rol")
+        if rol == "administrador":
+            cursos = list(cursos_collection.find({}))
+        else:
+            cursos = list(cursos_collection.find({"profesor": {"$in": _variantes_id(usuario_id)}}))
+
+        resultado = {}
+        for curso in cursos:
+            datos = _datos_curso(curso)
+            inscripciones = list(inscripciones_collection.find({"curso_id": {"$in": _variantes_id(curso["_id"])}}))
+            aceptadas = [i for i in inscripciones if i.get("estado", "aceptada") == "aceptada"]
+            progresos = [calcular_progreso(str(i.get("alumno_id")), datos, i) for i in aceptadas]
+            promedios = [p["promedio"] for p in progresos if p["promedio"] is not None]
+            resultado[str(curso["_id"])] = {
+                "inscritos": len(aceptadas),
+                "pagos_pendientes": sum(1 for i in inscripciones if i.get("estado") in ("pendiente_pago", "en_revision")),
+                "niveles": len(datos["niveles"]),
+                "lecciones": len(datos["lecciones"]),
+                "examenes": len(datos["examenes"]),
+                "promedio": round(sum(promedios) / len(promedios), 1) if promedios else None,
+                "avance_promedio": round(sum(p["progreso"] for p in progresos) / len(progresos), 1) if progresos else 0,
+                "terminados": sum(1 for p in progresos if p["terminado"]),
+                "en_riesgo": sum(1 for p in progresos if p["en_riesgo"]),
+            }
+        return {"calificacion_aprobatoria": CALIFICACION_APROBATORIA, "cursos": resultado}
     except Exception as e:
         return {"error": str(e)}

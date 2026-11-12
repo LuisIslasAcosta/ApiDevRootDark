@@ -144,7 +144,9 @@ def actualizar(curso_id):
     update_data = {
         "nombre": datos.get("nombre"),
         "descripcion": datos.get("descripcion"),
-        "precio": float(datos.get("precio")) if datos.get("precio") else None
+        "precio": float(datos.get("precio")) if datos.get("precio") else None,
+        # Datos de pago que verá el alumno al inscribirse (banco, CLABE, titular...)
+        "instrucciones_pago": datos.get("instrucciones_pago")
     }
 
     if imagenes_guardadas:
@@ -207,4 +209,5 @@ def alumnos_curso(curso_id):
 
     from controllers.inscripciones import obtener_inscripciones_por_curso
 
-    return jsonify(obtener_inscripciones_por_curso(curso_id)), 200
+    # Solo alumnos con el pago aceptado cuentan como inscritos
+    return jsonify(obtener_inscripciones_por_curso(curso_id, solo_aceptadas=True)), 200

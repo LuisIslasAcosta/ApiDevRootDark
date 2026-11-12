@@ -23,6 +23,7 @@ def serializar_curso(curso):
         "profesor": nombre_profesor,  
         "profesor_id": profesor_id,   
         "precio": curso.get("precio", 0),
+        "instrucciones_pago": curso.get("instrucciones_pago", ""),
         "imagenes": curso.get("imagenes", []),
         "videos": curso.get("videos", [])
     }

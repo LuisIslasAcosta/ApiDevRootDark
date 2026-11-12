@@ -33,6 +33,7 @@ from routes.recomendaciones_routes import recomendacion_bp
 from routes.segmentacion_alumnos_routes import segmentacion_alumnos_bp
 from routes.proxy_routes import proxy_bp
 from routes.importar_excel import excel_bp
+from routes.progreso_academico_routes import progreso_academico_bp
 
 app = Flask(__name__)
 # Clave JWT desde .env (nunca escrita en el código)
@@ -82,6 +83,7 @@ app.register_blueprint(kmeans_bp, url_prefix='/api')
 app.register_blueprint(segmentacion_alumnos_bp, url_prefix='/api')
 app.register_blueprint(proxy_bp, url_prefix='/api')
 app.register_blueprint(excel_bp, url_prefix='/api')
+app.register_blueprint(progreso_academico_bp, url_prefix='/api')
 
 
 # Carpeta de uploads

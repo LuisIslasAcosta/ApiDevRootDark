@@ -1,0 +1,50 @@
+# Pipeline de integración continua de la API de DevRootDark
+# Se ejecuta en cada push y pull request a las ramas principales.
+name: CI Backend (API DevRootDark)
+
+on:
+  push:
+    branches: [api, main, in_develop]
+  pull_request:
+    branches: [api, main]
+  workflow_dispatch: # permite ejecutarlo a mano desde la pestaña Actions
+
+jobs:
+  pruebas:
+    name: Compilar y probar
+    runs-on: ubuntu-latest
+    env:
+      MONGO_DB: test_db          # las pruebas usan colecciones en memoria, no la base real
+      FLASK_DEBUG: "0"
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mongomock flake8
+
+      - name: Análisis estático (errores de sintaxis y nombres no definidos)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,.venv,_respaldo_antes_pagos
+
+      - name: Compilar todos los módulos de Python
+        run: python -m compileall -q models controllers routes config utils app.py
+
+      - name: Ejecutar pruebas automatizadas
+        run: python -m pytest
+
+      - name: Publicar reporte de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-pruebas-backend
+          path: tests/reports/pytest_report.html

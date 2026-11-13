@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from types import SimpleNamespace
 
@@ -28,6 +29,13 @@ class MemoryCollection:
                     if "$ne" in valor and documento.get("_id") == valor["$ne"]:
                         return False
                 elif documento.get("_id") != valor:
+                    return False
+            elif isinstance(valor, dict) and "$regex" in valor:
+                banderas = re.IGNORECASE if "i" in valor.get("$options", "") else 0
+                if not re.search(valor["$regex"], str(documento.get(clave, "")), banderas):
+                    return False
+            elif isinstance(valor, dict) and "$in" in valor:
+                if documento.get(clave) not in valor["$in"]:
                     return False
             elif documento.get(clave) != valor:
                 return False
@@ -137,6 +145,11 @@ def memory_collections(monkeypatch):
 
     monkeypatch.setattr("models.Examen.examenes_collection", examenes, raising=False)
     monkeypatch.setattr("controllers.examenes.examenes_collection", examenes, raising=False)
+
+    # Las pruebas no deben depender de internet: se simula que el dominio del correo
+    # sí recibe correos y que el envío de correos de verificación no está configurado.
+    monkeypatch.setattr("models.User.dominio_recibe_correo", lambda email: True, raising=False)
+    monkeypatch.setattr("models.User.correo_configurado", lambda: False, raising=False)
 
     return {"usuarios": usuarios, "cursos": cursos, "examenes": examenes}
 

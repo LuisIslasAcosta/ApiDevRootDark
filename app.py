@@ -94,8 +94,14 @@ app.register_blueprint(certificados_bp, url_prefix='/api')
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 
 # Servir archivos estáticos desde /uploads
+# Solo se sirven archivos multimedia y PDF: así nunca se expone un .json, .env u otro archivo sensible
+EXTENSIONES_PUBLICAS = {"png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "webm", "pdf"}
+
 @app.route('/api/uploads/<path:filename>')
 def subir_archivo(filename):
+    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if extension not in EXTENSIONES_PUBLICAS:
+        return jsonify({"mensaje": "Archivo no disponible"}), 404
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/')

@@ -11,3 +11,7 @@ comprobantes/
 # Usuarios de prueba (contienen contraseñas)
 usuarios_prueba.json
 Credenciales_DevRootDark.pdf
+
+# Respaldos de la base de datos (nunca al repositorio)
+backups/
+uploads/*.json

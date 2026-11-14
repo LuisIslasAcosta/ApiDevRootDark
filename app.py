@@ -49,9 +49,15 @@ app.config['JWT_SECRET_KEY'] = jwt_secret
 # Tamaño máximo de archivos subidos (MB), configurable desde .env
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_MB', '200')) * 1024 * 1024
 
-# Orígenes permitidos (separados por coma en .env)
-cors_origins = [o.strip() for o in os.getenv(
-    'CORS_ORIGINS', 'http://localhost:5173').split(',') if o.strip()]
+# Orígenes permitidos: los del frontend oficial siempre, más los que se agreguen en .env (CORS_ORIGINS)
+FRONTENDS_OFICIALES = [
+    'https://devrootdark.netlify.app',
+    'https://darling-scone-5f7dba.netlify.app',
+    'http://localhost:5173',
+]
+cors_origins = list(dict.fromkeys(
+    FRONTENDS_OFICIALES + [o.strip().rstrip('/') for o in os.getenv('CORS_ORIGINS', '').split(',') if o.strip()]
+))
 
 CORS(app,
      resources={r"/api/*": {"origins": cors_origins}},

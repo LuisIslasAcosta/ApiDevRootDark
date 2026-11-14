@@ -7,7 +7,7 @@ Configuración en .env (ejemplo con Gmail y contraseña de aplicación):
     MAIL_USERNAME=tucorreo@gmail.com
     MAIL_PASSWORD=abcdefghijklmnop      (contraseña de aplicación de 16 letras)
     MAIL_FROM_NAME=DevRootDark
-    FRONTEND_URL=https://darling-scone-5f7dba.netlify.app
+    FRONTEND_URL=https://devrootdark.netlify.app
 """
 import os
 import smtplib
@@ -63,11 +63,13 @@ def correo_configurado():
     return bool(os.getenv("MAIL_USERNAME") and os.getenv("MAIL_PASSWORD"))
 
 
+FRONTEND_PREDETERMINADO = "https://devrootdark.netlify.app"
+
+
 def url_frontend():
-    url = os.getenv("FRONTEND_URL")
-    if not url:
-        origenes = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip().startswith("https://")]
-        url = origenes[0] if origenes else "http://localhost:5173"
+    url = (os.getenv("FRONTEND_URL") or "").strip()
+    if not url or "tu-sitio" in url:
+        url = FRONTEND_PREDETERMINADO
     return url.rstrip("/")
 
 

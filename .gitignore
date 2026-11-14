@@ -15,3 +15,6 @@ Credenciales_DevRootDark.pdf
 # Respaldos de la base de datos (nunca al repositorio)
 backups/
 uploads/*.json
+
+# Variables con credenciales (nunca al repositorio)
+.env

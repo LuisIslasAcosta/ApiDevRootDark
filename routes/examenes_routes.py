@@ -67,6 +67,18 @@ def registrar():
 
     examen_id = respuesta.json["examen_id"]
 
+    # Tiempo e intentos (si no vienen, se usan 60 minutos y 3 intentos)
+    ajustes = {}
+    for campo, minimo, maximo in (("duracion_minutos", 1, 600), ("intentos_max", 1, 20)):
+        try:
+            valor = int(request.form.get(campo) or 0)
+        except ValueError:
+            valor = 0
+        if valor:
+            ajustes[campo] = max(minimo, min(maximo, valor))
+    if ajustes:
+        examenes_collection.update_one({"_id": ObjectId(examen_id)}, {"$set": ajustes})
+
     if preguntas:
         preguntas_collection.insert_many([{**p, "examen_id": examen_id} for p in preguntas])
 

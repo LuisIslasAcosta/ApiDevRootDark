@@ -1,6 +1,7 @@
 from config.config import preguntas_collection, respuestas_collection, examenes_collection
 from bson.objectid import ObjectId
 from flask import jsonify
+from datetime import datetime, timezone
 
 def guardar_respuestas(alumno_id, examen_id, respuestas):
     print(f"DEBUG: Guardando respuestas para examen {examen_id}")
@@ -50,7 +51,8 @@ def guardar_respuestas(alumno_id, examen_id, respuestas):
         "examen_id": examen_id,
         "correctas": correctas,
         "total": total,
-        "calificacion": calificacion
+        "calificacion": calificacion,
+        "fecha": datetime.now(timezone.utc),
     })
 
     return jsonify({

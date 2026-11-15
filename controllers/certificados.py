@@ -14,6 +14,7 @@ from bson.objectid import ObjectId
 
 from config.config import db, cursos_collection, usuarios_collection
 from controllers.progreso_academico import progreso_alumno_curso, CALIFICACION_APROBATORIA
+from controllers.firmas import codigo_firma, obtener_firma
 
 certificados_collection = db["certificados"]
 
@@ -47,7 +48,23 @@ def _nombre_completo(usuario):
     return " ".join(p.strip() for p in partes if p and p.strip())
 
 
+def _firma_de(c):
+    """Firma con la que salió el certificado; los anteriores a las firmas usan la vigente del profesor."""
+    if c.get("firma_profesor"):
+        return c["firma_profesor"], c.get("firma_huella")
+    profesor_id = c.get("profesor_id")
+    if not profesor_id:
+        try:
+            curso = cursos_collection.find_one({"_id": ObjectId(str(c.get("curso_id")))})
+        except Exception:
+            curso = None
+        profesor_id = str((curso or {}).get("profesor", "")) or None
+    firma = obtener_firma(profesor_id)
+    return (firma["imagen"], firma["huella"]) if firma else (None, None)
+
+
 def _serializar(c, publico=False):
+    firma, huella = _firma_de(c)
     datos = {
         "folio": c["folio"],
         "alumno": c["alumno_nombre"],
@@ -58,6 +75,8 @@ def _serializar(c, publico=False):
         "examenes": c.get("examenes", 0),
         "fecha_emision": c["fecha_emision"].isoformat() + "Z",
         "valido": not c.get("revocado", False),
+        "firma_profesor": firma,
+        "firma_codigo": codigo_firma(c["folio"], huella),
     }
     if not publico:
         datos["curso_id"] = c["curso_id"]
@@ -97,6 +116,10 @@ def emitir_certificado(alumno_id, curso_id):
     if not alumno or not curso:
         raise ErrorCertificado("No se encontró el alumno o el curso.", 404)
 
+    # Se guarda la firma vigente del profesor: si después la cambia, este certificado no cambia
+    profesor_id = str(curso.get("profesor", "")) or None
+    firma = obtener_firma(profesor_id)
+
     certificado = {
         "folio": _nuevo_folio(),
         "alumno_id": str(alumno_id),
@@ -104,6 +127,9 @@ def emitir_certificado(alumno_id, curso_id):
         "curso_id": str(curso_id),
         "curso_nombre": curso.get("nombre", "Curso"),
         "profesor_nombre": progreso.get("profesor", ""),
+        "profesor_id": profesor_id,
+        "firma_profesor": firma["imagen"] if firma else None,
+        "firma_huella": firma["huella"] if firma else None,
         "promedio": progreso["promedio"],
         "lecciones": progreso["total_lecciones"],
         "examenes": progreso["total_examenes"],

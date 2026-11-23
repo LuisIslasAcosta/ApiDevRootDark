@@ -1,12 +1,13 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from controllers.segmentacion_alumnos import segmentar_alumnos, predecir_cluster_alumno
+from utils.seguridad import exigir_gestion_curso, exigir_ver_alumno, sesion_requerida, solo_admin, staff_requerido, usuario_sesion, texto, exigir_acceso_curso
 
 segmentacion_alumnos_bp = Blueprint("segmentacion_alumnos_bp", __name__)
 
 
 @segmentacion_alumnos_bp.route("/segmentacion/alumnos", methods=["GET"])
-@jwt_required()
+@staff_requerido
 def segmentacion_alumnos_route():
     """
     Segmenta a todos los alumnos del profesor usando K-Means + Random Forest
@@ -35,8 +36,11 @@ def segmentacion_alumnos_route():
 
 
 @segmentacion_alumnos_bp.route("/segmentacion/alumno/<alumno_id>", methods=["GET"])
-@jwt_required()
+@sesion_requerida
 def predecir_cluster_route(alumno_id):
+    problema = exigir_ver_alumno(alumno_id)
+    if problema:
+        return problema
     """
     Predice el cluster de un alumno específico
     """
@@ -45,4 +49,4 @@ def predecir_cluster_route(alumno_id):
     if "error" in resultado:
         return jsonify(resultado), 400
 
-    return jsonify(resultado), 200
+    return jsonify(resultado), 200

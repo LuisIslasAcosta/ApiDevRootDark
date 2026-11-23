@@ -70,8 +70,11 @@ def proxy_imagen():
         print(f"DEBUG PROXY: Content-Type: {response.headers.get('Content-Type')}")
         
         tipo = response.headers.get('Content-Type', '')
-        if response.status_code == 200 and not tipo.startswith('image/'):
+        if response.status_code == 200 and (not tipo.startswith('image/') or 'svg' in tipo):
+            # SVG no: puede llevar scripts y ejecutarse en el dominio de la API
             return jsonify({"error": "La URL no es una imagen"}), 400
+        if len(response.content) > 10 * 1024 * 1024:
+            return jsonify({"error": "La imagen es demasiado grande"}), 413
 
         if response.status_code == 200:
             print(f"DEBUG PROXY: Imagen obtenida exitosamente, tamaño: {len(response.content)} bytes")

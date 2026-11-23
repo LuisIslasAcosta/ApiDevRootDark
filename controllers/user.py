@@ -32,13 +32,31 @@ def obtener_usuario_por_id(usuario_id):
     return serializar_usuario(usuario) if usuario else None
 
 
-def actualizar_usuario(usuario_id, datos_actualizados):
-    # Evitar que se actualice password aquí
-    datos_actualizados.pop("password", None)
+# Datos que el propio usuario puede cambiar de su perfil
+CAMPOS_PERFIL = ("nombre", "apellidop", "apellidom", "telefono", "foto_perfil", "pais", "ciudad")
+ROLES_VALIDOS = ("usuario", "profesor", "administrador")
+
+
+def actualizar_usuario(usuario_id, datos_actualizados, como_admin=False):
+    """Actualiza solo campos permitidos. El rol únicamente lo cambia un administrador.
+
+    Nunca se actualizan aquí la contraseña, el _id, la matrícula ni la verificación del correo
+    (evita que alguien se asigne el rol de administrador mandando campos extra).
+    """
+    datos_actualizados = datos_actualizados if isinstance(datos_actualizados, dict) else {}
+    cambios = {}
+    for campo in CAMPOS_PERFIL:
+        valor = datos_actualizados.get(campo)
+        if isinstance(valor, str):
+            cambios[campo] = valor.strip()[:3_000_000 if campo == "foto_perfil" else 120]
+    if como_admin and datos_actualizados.get("rol") in ROLES_VALIDOS:
+        cambios["rol"] = datos_actualizados["rol"]
+    if not cambios:
+        return False
 
     resultado = usuarios_collection.update_one(
         {"_id": ObjectId(usuario_id)},
-        {"$set": datos_actualizados}
+        {"$set": cambios}
     )
 
     return resultado.modified_count > 0

@@ -16,7 +16,8 @@ from utils.seguridad import admin_requerido
 
 musica_bp = Blueprint("musica_bp", __name__)
 
-CARPETA_MUSICA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "musica")
+from utils.archivos import UPLOADS_DIR, detectar_tipo
+CARPETA_MUSICA = os.path.join(UPLOADS_DIR, "musica")
 EXT_AUDIO = {"mp3", "m4a", "ogg"}
 EXT_VIDEO = {"mp4", "webm"}
 
@@ -56,7 +57,9 @@ def subir():
     for archivo in archivos:
         nombre = secure_filename(archivo.filename or "")
         ext = nombre.rsplit(".", 1)[-1].lower() if "." in nombre else ""
-        if not nombre or ext not in EXT_AUDIO | EXT_VIDEO:
+        cabecera = archivo.stream.read(16)
+        archivo.stream.seek(0)
+        if not nombre or ext not in EXT_AUDIO | EXT_VIDEO or detectar_tipo(cabecera) not in ("mp3", "mp4", "webm", "ogg"):
             rechazados.append(archivo.filename or "sin nombre")
             continue
         archivo.save(os.path.join(CARPETA_MUSICA, nombre))

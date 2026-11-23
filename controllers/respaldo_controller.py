@@ -37,7 +37,8 @@ def get_database():
 # ===============================
 # CARPETAS DE RESPALDOS
 # ===============================
-BASE_DIR = "backups"
+# Carpeta de respaldos (fuera de uploads/, nunca pública). Configurable con BACKUPS_DIR.
+BASE_DIR = os.getenv("BACKUPS_DIR") or "backups"
 FULL_DIR = os.path.join(BASE_DIR, "completos")
 INCREMENTAL_DIR = os.path.join(BASE_DIR, "incrementales")
 DIFFERENTIAL_DIR = os.path.join(BASE_DIR, "diferenciales")

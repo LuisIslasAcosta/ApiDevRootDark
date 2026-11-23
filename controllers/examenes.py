@@ -14,7 +14,11 @@ def serializar_examen(examen):
         "nivel_id": str(examen.get("nivel_id", "")),
         "titulo": examen.get("titulo", ""),
         "fecha": examen.get("fecha", ""),
-        "preguntas": examen.get("preguntas", []),
+        # Nunca se envía la respuesta correcta al navegador
+        "preguntas": [
+            {k: v for k, v in p.items() if k not in ("respuesta_correcta", "correcta", "respuesta")}
+            for p in examen.get("preguntas", []) if isinstance(p, dict)
+        ],
         "num_preguntas": num_preguntas
     }
 

@@ -6,7 +6,12 @@ cd "$(dirname "$0")/.."
 cp .env ~/env-respaldo-devrootdark
 git pull origin api
 cp ~/env-respaldo-devrootdark .env
-./venv/bin/pip install -q -r requirements.txt
-sudo systemctl restart apidevrootdark
-sleep 2
-systemctl is-active apidevrootdark && echo "API actualizada y en línea"
+# Si ya se migró al servicio aislado (deploy/instalar_seguro.sh), se actualiza la copia de /opt
+if [ -d /opt/devrootdark/api ]; then
+  sudo bash deploy/instalar_seguro.sh
+else
+  ./venv/bin/pip install -q -r requirements.txt
+  sudo systemctl restart apidevrootdark
+  sleep 2
+  systemctl is-active apidevrootdark && echo "API actualizada y en línea"
+fi

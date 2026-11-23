@@ -22,18 +22,34 @@ from utils.correo import leer_token_verificacion, enviar_correo_verificacion, co
 from datetime import datetime, timedelta
 from config.config import usuarios_collection
 from utils.hash_utils import verificar_hash
+from flask_jwt_extended import get_jwt
+from models.User import problema_contrasena
+from controllers.sesiones import (
+    bloqueado, registrar_fallo, limpiar_intentos,
+    renovacion_vigente, rotar, revocar_token, revocar_todas,
+)
+from controllers.user import serializar_usuario
+from utils.seguridad import (
+    error, texto, ip_cliente, rol_requerido, sesion_requerida, solo_admin,
+    usuario_sesion, es_admin, es_staff, puede_ver_alumno,
+)
 
 user_bp = Blueprint('user_bp', __name__)
 
 # ============================= LOGIN =============================
 @user_bp.route('/login', methods=['POST'])
 def login():
-    datos = request.json
-    email = datos.get('email')
-    password = datos.get('password')
+    datos = request.get_json(silent=True) or {}
+    email = texto(datos.get('email'), 254).lower()
+    password = datos.get('password') if isinstance(datos.get('password'), str) else ""
 
     if not email or not password:
         return jsonify({"mensaje": "El correo y la contraseña son necesarios"}), 400
+
+    # Límite de intentos fallidos por correo y por dirección IP (contra fuerza bruta)
+    espera = max(bloqueado("login", email), bloqueado("login_ip", ip_cliente()))
+    if espera:
+        return jsonify({"mensaje": f"Demasiados intentos fallidos. Intenta de nuevo en {espera} minutos."}), 429
 
     resultado = validar_login(email, password, datos.get('acepta_terminos') is True)
 
@@ -49,9 +65,43 @@ def login():
         }), 403
 
     if resultado:
+        limpiar_intentos("login", email)
         return jsonify(resultado), 200
-    else:
-        return jsonify({"mensaje": "Correo o contraseña incorrectos"}), 401
+
+    registrar_fallo("login", email)
+    registrar_fallo("login_ip", ip_cliente())
+    return jsonify({"mensaje": "Correo o contraseña incorrectos"}), 401
+
+
+# ============================= SESIÓN =============================
+@user_bp.route('/me', methods=['GET'])
+@sesion_requerida
+def yo():
+    """Datos y rol del usuario según el servidor (el frontend no debe confiar en su propia copia)."""
+    return jsonify(serializar_usuario(usuario_sesion())), 200
+
+
+@user_bp.route('/token/renovar', methods=['POST'])
+@jwt_required(refresh=True)
+def renovar_token():
+    """Cambia el token de renovación por uno nuevo y entrega un token de acceso nuevo."""
+    datos = get_jwt()
+    if not renovacion_vigente(datos["jti"]):
+        return jsonify({"mensaje": "La sesión se cerró. Inicia sesión de nuevo."}), 401
+    usuario_id = get_jwt_identity()
+    if not ObjectId.is_valid(str(usuario_id)) or not usuarios_collection.find_one({"_id": ObjectId(str(usuario_id))}, {"_id": 1}):
+        return jsonify({"mensaje": "La cuenta ya no existe."}), 401
+    acceso, renovacion = rotar(datos["jti"], usuario_id)
+    return jsonify({"access_token": acceso, "refresh_token": renovacion}), 200
+
+
+@user_bp.route('/logout', methods=['POST'])
+def logout():
+    """Revoca el token de renovación: aunque alguien lo haya copiado, ya no sirve."""
+    token = (request.get_json(silent=True) or {}).get("refresh_token")
+    if isinstance(token, str) and token:
+        revocar_token(token)
+    return jsonify({"mensaje": "Sesión cerrada"}), 200
 
 
 # ============================= LOGIN CON GOOGLE =============================
@@ -96,7 +146,10 @@ def login_google():
 # ============================= REGISTRO =============================
 @user_bp.route('/registrar', methods=['POST'])
 def registrar():
-    datos = request.json or {}
+    crudo = request.get_json(silent=True) or {}
+    datos = {k: (v if k in ("foto_perfil", "password", "verificar_password") and isinstance(v, str) else texto(v, 254)) for k, v in crudo.items()
+             if k != "acepta_terminos"}
+    datos["acepta_terminos"] = crudo.get("acepta_terminos")
 
     if datos.get('acepta_terminos') is not True:
         return jsonify({"mensaje": "Debes aceptar los términos y condiciones para crear tu cuenta.",
@@ -161,7 +214,7 @@ def terminos_aceptar():
 # ============================= CONFIRMAR CORREO =============================
 @user_bp.route('/verificar-correo', methods=['POST'])
 def verificar_correo():
-    token = (request.json or {}).get("token", "")
+    token = texto((request.get_json(silent=True) or {}).get("token", ""), 1000)
     email, error = leer_token_verificacion(token)
 
     if error == "expirado":
@@ -185,7 +238,7 @@ def verificar_correo():
 
 @user_bp.route('/reenviar-verificacion', methods=['POST'])
 def reenviar_verificacion():
-    email = ((request.json or {}).get("email") or "").strip()
+    email = texto((request.get_json(silent=True) or {}).get("email"), 254)
     respuesta_generica = {"mensaje": "Si la cuenta existe y no está confirmada, te enviamos un nuevo correo."}
 
     if not email:
@@ -214,16 +267,19 @@ def reenviar_verificacion():
 
 # ============================= ADMIN: ACTUALIZAR CONTRASEÑA =============================
 @user_bp.route('/recuperar_contraseña/<usuario_id>', methods=['PUT'])
+@rol_requerido("administrador", fresco=True)
 def recuperar_contraseña(usuario_id):
-    datos = request.json
+    datos = request.get_json(silent=True) or {}
     nueva_contraseña = datos.get('nueva_contraseña')
 
-    if not nueva_contraseña:
-        return jsonify({"mensaje": "La nueva contraseña es requerida"}), 400
+    problema = problema_contrasena(nueva_contraseña)
+    if problema:
+        return jsonify({"mensaje": problema}), 400
 
     try:
         exito = actualizar_contraseña(usuario_id, nueva_contraseña)
         if exito:
+            revocar_todas(usuario_id)
             return jsonify({"mensaje": "Contraseña actualizada correctamente"}), 200
         else:
             return jsonify({"mensaje": "No se pudo actualizar la contraseña"}), 400
@@ -233,42 +289,82 @@ def recuperar_contraseña(usuario_id):
 
 # ============================= USUARIOS =============================
 @user_bp.route('/usuarios/<usuario_id>', methods=['GET'])
+@sesion_requerida
 def obtener_usuario(usuario_id):
-    usuario = obtener_usuario_por_id(usuario_id)
+    # El propio usuario, el administrador o un profesor con ese alumno en sus cursos
+    if not puede_ver_alumno(usuario_sesion(), usuario_id):
+        return error(403, "No tienes permiso para ver este usuario.")
+    try:
+        usuario = obtener_usuario_por_id(usuario_id)
+    except InvalidId:
+        return jsonify({"mensaje": "ID inválido"}), 400
     if usuario:
         return jsonify(usuario), 200
     return jsonify({"mensaje": "Usuario no encontrado"}), 404
 
 
 @user_bp.route('/usuarios/<usuario_id>', methods=['PUT'])
+@sesion_requerida
 def actualizar_usuario_route(usuario_id):
+    """El usuario edita su perfil; el administrador además puede cambiar rol y contraseña."""
+    yo_mismo = usuario_sesion()
+    admin = es_admin(yo_mismo)
+    if str(yo_mismo["_id"]) != str(usuario_id) and not admin:
+        return error(403, "Solo puedes editar tu propio perfil.")
+    datos = request.get_json(silent=True) or {}
     try:
-        exito = actualizar_usuario(usuario_id, request.json)
-        return jsonify({"mensaje": "Usuario actualizado correctamente"}), 200 if exito else 400
-    except InvalidId:
+        objetivo = usuarios_collection.find_one({"_id": ObjectId(usuario_id)}, {"rol": 1})
+    except (InvalidId, TypeError):
         return jsonify({"mensaje": "ID inválido"}), 400
+    if not objetivo:
+        return jsonify({"mensaje": "Usuario no encontrado"}), 404
+
+    # No dejar el sistema sin administradores
+    if admin and objetivo.get("rol") == "administrador" and datos.get("rol") not in (None, "administrador"):
+        if usuarios_collection.count_documents({"rol": "administrador"}) <= 1:
+            return jsonify({"mensaje": "Debe quedar al menos un administrador."}), 400
+
+    cambios = False
+    if admin and datos.get("password"):
+        problema = problema_contrasena(datos.get("password"))
+        if problema:
+            return jsonify({"mensaje": problema}), 400
+        actualizar_contraseña(usuario_id, datos["password"])
+        revocar_todas(usuario_id)
+        cambios = True
+
+    exito = actualizar_usuario(usuario_id, datos, como_admin=admin) or cambios
+    return jsonify({"mensaje": "Usuario actualizado correctamente" if exito else "No hubo cambios"}), 200 if exito else 400
 
 
 @user_bp.route('/usuarios/<usuario_id>', methods=['DELETE'])
+@solo_admin
 def eliminar_usuario_route(usuario_id):
+    if str(usuario_sesion()["_id"]) == str(usuario_id):
+        return jsonify({"mensaje": "No puedes eliminar tu propia cuenta de administrador."}), 400
     try:
         exito = eliminar_usuario(usuario_id)
+        if exito:
+            revocar_todas(usuario_id)
         return jsonify({"mensaje": "Usuario eliminado correctamente"}), 200 if exito else 400
     except InvalidId:
         return jsonify({"mensaje": "ID inválido"}), 400
 
 
 @user_bp.route('/usuarios', methods=['GET'])
+@solo_admin
 def listar_usuarios():
     return jsonify(obtener_usuarios()), 200
 
 
 @user_bp.route('/usuarios/recientes', methods=['GET'])
+@solo_admin
 def listar_usuarios_recientes():
     try:
         return jsonify(obtener_usuarios_recientes()), 200
     except Exception as e:
-        return jsonify({"mensaje": f"Error: {str(e)}"}), 500
+        print(f"ERROR usuarios recientes: {e}")
+        return jsonify({"mensaje": "No se pudieron obtener los usuarios"}), 500
 
 
 # ============================= RECUPERAR CONTRASEÑA POR PREGUNTA =============================
@@ -276,13 +372,15 @@ def listar_usuarios_recientes():
 #  Obtener pregunta por email
 @user_bp.route('/recuperar/pregunta', methods=['POST'])
 def obtener_pregunta():
-    datos = request.json
-    email = datos.get("email")
+    datos = request.get_json(silent=True) or {}
+    email = texto(datos.get("email"), 254)
 
     if not email:
         return jsonify({"mensaje": "Correo requerido"}), 400
+    if bloqueado("recuperar_ip", ip_cliente()):
+        return jsonify({"mensaje": "Demasiados intentos. Espera unos minutos."}), 429
 
-    usuario = usuarios_collection.find_one({"email": email})
+    usuario = buscar_por_email(email)
 
     if not usuario:
         return jsonify({"mensaje": "Usuario no encontrado"}), 404
@@ -296,16 +394,19 @@ def obtener_pregunta():
 #  Verificar respuesta de seguridad
 @user_bp.route('/recuperar/verificar', methods=['POST'])
 def verificar_respuesta():
-    datos = request.json
-    usuario_id = datos.get("usuario_id")
-    respuesta = datos.get("respuesta")
+    datos = request.get_json(silent=True) or {}
+    usuario_id = texto(datos.get("usuario_id"), 40)
+    respuesta = texto(datos.get("respuesta"), 200)
 
     if not usuario_id or not respuesta:
         return jsonify({"mensaje": "Datos incompletos"}), 400
+    espera = max(bloqueado("recuperar", usuario_id), bloqueado("recuperar_ip", ip_cliente()))
+    if espera:
+        return jsonify({"mensaje": f"Demasiados intentos. Intenta de nuevo en {espera} minutos."}), 429
 
     try:
         usuario = usuarios_collection.find_one({"_id": ObjectId(usuario_id)})
-    except:
+    except Exception:
         return jsonify({"mensaje": "ID inválido"}), 400
 
     if not usuario:
@@ -313,8 +414,9 @@ def verificar_respuesta():
 
     respuesta_guardada = usuario.get("respuesta_seguridad")
 
-    #  CORREGIDO: primero texto ingresado, luego hash guardado
-    if not verificar_hash(respuesta, respuesta_guardada):
+    if not respuesta_guardada or not verificar_hash(respuesta, respuesta_guardada):
+        registrar_fallo("recuperar", usuario_id)
+        registrar_fallo("recuperar_ip", ip_cliente())
         return jsonify({"mensaje": "Respuesta incorrecta"}), 401
 
     return jsonify({"mensaje": "Respuesta correcta"}), 200
@@ -323,28 +425,39 @@ def verificar_respuesta():
 #  Resetear contraseña SOLO si la respuesta es correcta
 @user_bp.route('/recuperar/reset', methods=['PUT'])
 def reset_password():
-    datos = request.json
-    usuario_id = datos.get("usuario_id")
-    nueva_password = datos.get("nueva_password")
-    respuesta = datos.get("respuesta")  #  requerimos la respuesta de seguridad
+    datos = request.get_json(silent=True) or {}
+    usuario_id = texto(datos.get("usuario_id"), 40)
+    nueva_password = datos.get("nueva_password") if isinstance(datos.get("nueva_password"), str) else ""
+    respuesta = texto(datos.get("respuesta"), 200)  #  requerimos la respuesta de seguridad
 
     if not usuario_id or not nueva_password or not respuesta:
         return jsonify({"mensaje": "Datos incompletos"}), 400
+    espera = max(bloqueado("recuperar", usuario_id), bloqueado("recuperar_ip", ip_cliente()))
+    if espera:
+        return jsonify({"mensaje": f"Demasiados intentos. Intenta de nuevo en {espera} minutos."}), 429
 
     try:
         usuario = usuarios_collection.find_one({"_id": ObjectId(usuario_id)})
-    except:
+    except Exception:
         return jsonify({"mensaje": "ID inválido"}), 400
 
     if not usuario:
         return jsonify({"mensaje": "Usuario no encontrado"}), 404
 
     #  Verificamos la respuesta antes de actualizar la contraseña
-    if not verificar_hash(respuesta, usuario.get("respuesta_seguridad")):
+    if not usuario.get("respuesta_seguridad") or not verificar_hash(respuesta, usuario.get("respuesta_seguridad")):
+        registrar_fallo("recuperar", usuario_id)
+        registrar_fallo("recuperar_ip", ip_cliente())
         return jsonify({"mensaje": "Respuesta incorrecta"}), 401
+
+    problema = problema_contrasena(nueva_password)
+    if problema:
+        return jsonify({"mensaje": problema}), 400
 
     exito = actualizar_contraseña(usuario_id, nueva_password)
     if exito:
+        limpiar_intentos("recuperar", usuario_id)
+        revocar_todas(usuario_id)  # cierra las sesiones abiertas con la contraseña anterior
         return jsonify({"mensaje": "Contraseña actualizada correctamente"}), 200
 
     return jsonify({"mensaje": "Error al actualizar contraseña"}), 400

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from utils.seguridad import exigir_gestion_curso, exigir_ver_alumno, sesion_requerida, solo_admin, staff_requerido, usuario_sesion, texto, exigir_acceso_curso
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from models.Respuesta import guardar_respuestas
 from controllers.respuestas import obtener_resultados_por_alumno
@@ -35,5 +36,9 @@ def registrar():
 
 
 @respuesta_bp.route("/respuestas/alumno/<alumno_id>", methods=["GET"])
+@sesion_requerida
 def listar_por_alumno(alumno_id):
+    problema = exigir_ver_alumno(alumno_id)
+    if problema:
+        return problema
     return jsonify(obtener_resultados_por_alumno(alumno_id)), 200

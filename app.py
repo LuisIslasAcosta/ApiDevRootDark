@@ -48,6 +48,11 @@ if not jwt_secret:
     print("ADVERTENCIA: JWT_SECRET_KEY no está en .env; se generó una temporal "
           "(las sesiones se cerrarán cada vez que se reinicie la API).")
 app.config['JWT_SECRET_KEY'] = jwt_secret
+# Tokens de acceso cortos y de renovación revocables (ver controllers/sesiones.py)
+from controllers.sesiones import DURACION_ACCESO, DURACION_RENOVACION, renovacion_vigente
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = DURACION_ACCESO
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = DURACION_RENOVACION
+app.config['JWT_TOKEN_LOCATION'] = ['headers']
 
 # Tamaño máximo de archivos subidos (MB), configurable desde .env
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_MB', '200')) * 1024 * 1024
@@ -55,7 +60,6 @@ app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_MB', '200')) * 1024
 # Orígenes permitidos: los del frontend oficial siempre, más los que se agreguen en .env (CORS_ORIGINS)
 FRONTENDS_OFICIALES = [
     'https://devrootdark.netlify.app',
-    'https://darling-scone-5f7dba.netlify.app',
     'http://localhost:5173',
 ]
 cors_origins = list(dict.fromkeys(
@@ -67,6 +71,38 @@ CORS(app,
      supports_credentials=True)
 
 jwt = JWTManager(app)
+
+
+# Los tokens de renovación se pueden revocar (cerrar sesión, cambio de contraseña)
+@jwt.token_in_blocklist_loader
+def token_revocado(_cabecera, datos):
+    if datos.get("type") != "refresh":
+        return False
+    return not renovacion_vigente(datos.get("jti"))
+
+
+# Respuestas de error del token en el mismo formato que el resto de la API
+def _error_token(mensaje, codigo=401, clave="sin_sesion"):
+    return jsonify({"mensaje": mensaje, "message": mensaje, "codigo": clave}), codigo
+
+
+jwt.expired_token_loader(lambda _c, _d: _error_token("Tu sesión expiró. Inicia sesión de nuevo.", 401, "token_expirado"))
+jwt.invalid_token_loader(lambda _m: _error_token("Sesión no válida. Inicia sesión de nuevo.", 401))
+jwt.unauthorized_loader(lambda _m: _error_token("Inicia sesión para continuar.", 401))
+jwt.revoked_token_loader(lambda _c, _d: _error_token("La sesión se cerró. Inicia sesión de nuevo.", 401, "token_revocado"))
+jwt.needs_fresh_token_loader(lambda _c, _d: _error_token("Por seguridad, vuelve a escribir tu contraseña para continuar.", 401, "requiere_contrasena"))
+
+
+# Cabeceras de seguridad en todas las respuestas de la API
+@app.after_request
+def cabeceras_seguridad(respuesta):
+    respuesta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    respuesta.headers.setdefault("X-Frame-Options", "DENY")
+    respuesta.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    respuesta.headers.setdefault("Cross-Origin-Resource-Policy", "cross-origin")
+    if respuesta.mimetype == "application/json":
+        respuesta.headers.setdefault("Cache-Control", "no-store")
+    return respuesta
 
 # Registro de blueprints
 app.register_blueprint(user_bp, url_prefix='/api')
@@ -102,19 +138,12 @@ app.register_blueprint(firmas_bp, url_prefix='/api')
 app.register_blueprint(musica_bp, url_prefix='/api')
 
 
-# Carpeta de uploads
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
-
-# Servir archivos estáticos desde /uploads
-# Solo se sirven archivos multimedia y PDF: así nunca se expone un .json, .env u otro archivo sensible
-EXTENSIONES_PUBLICAS = {"png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "webm", "pdf", "mp3", "m4a", "ogg"}
+# Archivos subidos: se entregan con validación (los de lecciones requieren permiso del curso)
+from utils.archivos import entregar
 
 @app.route('/api/uploads/<path:filename>')
 def subir_archivo(filename):
-    extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if extension not in EXTENSIONES_PUBLICAS:
-        return jsonify({"mensaje": "Archivo no disponible"}), 404
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    return entregar(filename)
 
 @app.route('/')
 def home():

@@ -1,0 +1,48 @@
+# Servicio de la API DevRootDark con privilegios mínimos (V-03 del reporte de seguridad)
+# Instalación: sudo bash deploy/instalar_seguro.sh
+[Unit]
+Description=API DevRootDark (Flask + Gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=devrootdark
+Group=devrootdark
+WorkingDirectory=/opt/devrootdark/api
+EnvironmentFile=/opt/devrootdark/api/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=HOME=/var/lib/devrootdark
+# Solo escucha en la máquina: Tailscale Funnel es lo único que la publica
+ExecStart=/opt/devrootdark/api/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 3 --threads 4 --timeout 300 app:app
+Restart=on-failure
+RestartSec=5
+
+# --- Aislamiento ---
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+UMask=0027
+# Lo único donde puede escribir: sus datos (uploads, respaldos, comprobantes)
+ReadWritePaths=/var/lib/devrootdark
+# El código es de solo lectura para el servicio
+ReadOnlyPaths=/opt/devrootdark/api
+
+[Install]
+WantedBy=multi-user.target

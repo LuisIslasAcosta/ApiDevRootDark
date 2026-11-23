@@ -11,6 +11,11 @@ from config.config import usuarios_collection, cursos_collection
 from models.Inscripciones import (
     registrar_inscripcion, eliminar_inscripcion, guardar_comprobante, validar_pago, estado_de
 )
+from utils.archivos import detectar_tipo
+from utils.seguridad import (
+    curso_por_id, error, es_admin, exigir_gestion_curso, exigir_ver_alumno, puede_gestionar_curso,
+    sesion_requerida, staff_requerido, texto, usuario_sesion, variantes_id,
+)
 from controllers.inscripciones import (
     obtener_inscripciones, obtener_inscripciones_por_curso, obtener_inscripciones_por_alumno,
     obtener_inscripcion, obtener_pagos_profesor, serializar_inscripcion
@@ -19,7 +24,7 @@ from controllers.inscripciones import (
 inscripcion_bp = Blueprint("inscripcion_bp", __name__)
 
 # Los comprobantes NO se guardan en uploads/ porque esa carpeta es pública.
-CARPETA_COMPROBANTES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "comprobantes")
+CARPETA_COMPROBANTES = os.getenv("COMPROBANTES_DIR") or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "comprobantes")
 os.makedirs(CARPETA_COMPROBANTES, exist_ok=True)
 
 EXTENSIONES_PERMITIDAS = {"pdf": "application/pdf", "png": "image/png", "jpg": "image/jpeg",
@@ -45,19 +50,14 @@ def _es_profesor_del_curso(usuario_id, curso_id):
 
 # ============================= INSCRIBIRSE =============================
 @inscripcion_bp.route("/inscripciones", methods=["POST"])
+@sesion_requerida
 def registrar():
-    datos = request.json or {}
-    curso_id = datos.get("curso_id")
-    alumno_id = datos.get("alumno_id")
-
-    # Si viene el token se usa el ID del token (más seguro que el del cuerpo)
-    try:
-        verify_jwt_in_request(optional=True)
-        identidad = get_jwt_identity()
-        if identidad:
-            alumno_id = str(identidad)
-    except Exception:
-        pass
+    datos = request.get_json(silent=True) or {}
+    curso_id = texto(datos.get("curso_id"))
+    # El alumno siempre es el del token: nadie puede inscribir a otra persona
+    alumno_id = str(usuario_sesion()["_id"])
+    if not curso_por_id(curso_id):
+        return error(404, "Curso no encontrado")
 
     if not curso_id or not alumno_id:
         return jsonify({"mensaje": "Curso y alumno son obligatorios"}), 400
@@ -94,6 +94,9 @@ def subir_comprobante(inscripcion_id):
         return jsonify({"mensaje": "Formato no permitido. Usa PDF, PNG, JPG o WEBP"}), 400
 
     contenido = archivo.read()
+    tipo_real = detectar_tipo(contenido[:16])
+    if tipo_real != {"jpeg": "jpg"}.get(extension, extension):
+        return jsonify({"mensaje": "El archivo no es un PDF o imagen válido"}), 400
     if len(contenido) > TAMANO_MAXIMO:
         return jsonify({"mensaje": "El comprobante no debe pesar más de 5 MB"}), 400
     if len(contenido) == 0:
@@ -177,27 +180,47 @@ def validar(inscripcion_id):
 
 # ============================= EXISTENTES =============================
 @inscripcion_bp.route("/inscripciones/<inscripcion_id>", methods=["DELETE"])
+@staff_requerido
 def eliminar(inscripcion_id):
+    inscripcion = obtener_inscripcion(inscripcion_id) if ObjectId.is_valid(inscripcion_id) else None
+    if not inscripcion:
+        return error(404, "Inscripción no encontrada")
+    problema = exigir_gestion_curso(inscripcion.get("curso_id"))
+    if problema:
+        return problema
     try:
-        exito = eliminar_inscripcion(inscripcion_id)
-        if exito:
+        if eliminar_inscripcion(inscripcion_id):
             return jsonify({"mensaje": "Inscripción eliminada correctamente"}), 200
-        else:
-            return jsonify({"mensaje": "No se pudo eliminar la inscripción"}), 400
+        return jsonify({"mensaje": "No se pudo eliminar la inscripción"}), 400
     except InvalidId:
         return jsonify({"mensaje": "ID de inscripción inválido"}), 400
 
 
 @inscripcion_bp.route("/inscripciones", methods=["GET"])
+@staff_requerido
 def listar():
-    return jsonify(obtener_inscripciones()), 200
+    usuario = usuario_sesion()
+    todas = obtener_inscripciones()
+    if es_admin(usuario):
+        return jsonify(todas), 200
+    # El profesor solo ve las de sus cursos
+    mis_cursos = {str(c["_id"]) for c in cursos_collection.find({"profesor": {"$in": variantes_id(usuario["_id"])}}, {"_id": 1})}
+    return jsonify([i for i in todas if str(i.get("curso_id")) in mis_cursos]), 200
 
 
 @inscripcion_bp.route("/inscripciones/curso/<curso_id>", methods=["GET"])
+@staff_requerido
 def listar_por_curso(curso_id):
+    problema = exigir_gestion_curso(curso_id)
+    if problema:
+        return problema
     return jsonify(obtener_inscripciones_por_curso(curso_id)), 200
 
 
 @inscripcion_bp.route("/inscripciones/alumno/<alumno_id>", methods=["GET"])
+@sesion_requerida
 def listar_por_alumno(alumno_id):
+    problema = exigir_ver_alumno(alumno_id)
+    if problema:
+        return problema
     return jsonify(obtener_inscripciones_por_alumno(alumno_id)), 200

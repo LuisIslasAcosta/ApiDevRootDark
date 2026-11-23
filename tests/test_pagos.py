@@ -21,8 +21,9 @@ def entorno(monkeypatch, tmp_path):
     import models.Inscripciones as modelo
     import controllers.inscripciones as controlador
     import routes.inscripciones_routes as rutas
+    import utils.seguridad as seguridad
 
-    for modulo in (modelo, controlador, rutas):
+    for modulo in (modelo, controlador, rutas, seguridad):
         for nombre, coleccion in colecciones.items():
             monkeypatch.setattr(modulo, nombre, coleccion, raising=False)
     monkeypatch.setattr(rutas, "CARPETA_COMPROBANTES", str(tmp_path))

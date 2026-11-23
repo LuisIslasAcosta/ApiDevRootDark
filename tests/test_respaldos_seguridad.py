@@ -26,7 +26,9 @@ def cliente(monkeypatch):
     admin = str(db["usuarios"].insert_one({"rol": "administrador", "email": "admin@x.com"}).inserted_id)
     alumno = str(db["usuarios"].insert_one({"rol": "usuario", "email": "alumno@x.com"}).inserted_id)
     with app.app_context():
-        tokens = {"admin": create_access_token(identity=admin), "alumno": create_access_token(identity=alumno)}
+        tokens = {"admin": create_access_token(identity=admin, fresh=True),
+                  "alumno": create_access_token(identity=alumno, fresh=True),
+                  "admin_renovado": create_access_token(identity=admin, fresh=False)}
     return app.test_client(), tokens, db["auditoria"]
 
 
@@ -59,3 +61,13 @@ def test_admin_si_puede_y_queda_en_bitacora(cliente):
     assert c.get("/api/respaldo/completo", headers=h).get_json() == {"tipo": "completo"}
     assert auditoria.count_documents({"email": "admin@x.com", "exito": True}) == 2
     assert len(c.get("/api/respaldos/auditoria", headers=h).get_json()) >= 2
+
+
+def test_acciones_criticas_piden_contrasena_reciente(cliente):
+    """Un token renovado (no fresco) puede listar, pero no generar ni borrar respaldos."""
+    c, t, auditoria = cliente
+    h = {"Authorization": f"Bearer {t['admin_renovado']}"}
+    assert c.get("/api/respaldos", headers=h).status_code == 200
+    assert c.get("/api/respaldo/completo", headers=h).status_code == 401
+    assert c.delete("/api/respaldo/completo/r.json", headers=h).status_code == 401
+    assert auditoria.count_documents({"exito": False}) >= 2

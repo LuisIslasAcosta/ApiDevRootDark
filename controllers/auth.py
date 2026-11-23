@@ -1,11 +1,13 @@
 import re
 from config.config import usuarios_collection
 from utils.hash_utils import verificar_hash
-from flask_jwt_extended import create_access_token
+from controllers.sesiones import crear_tokens
 from utils.terminos import terminos_pendientes, info_pendiente, registrar_aceptacion, version_vigente
 import base64
 
 def validar_login(email, password, acepta_terminos=False):
+    email = email if isinstance(email, str) else ""
+    password = password if isinstance(password, str) else ""
     usuario = usuarios_collection.find_one(
         {"email": {"$regex": f"^{re.escape((email or '').strip())}$", "$options": "i"}}
     )
@@ -14,7 +16,7 @@ def validar_login(email, password, acepta_terminos=False):
         return None
 
     #  Verificar contraseña correctamente
-    if not verificar_hash(password, usuario["password"]):
+    if not usuario.get("password") or not verificar_hash(password, usuario["password"]):
         return None
 
     #  Cuentas nuevas: deben confirmar su correo antes de entrar
@@ -42,7 +44,8 @@ def revisar_terminos(usuario, acepta_terminos):
 
 def respuesta_login(usuario):
     """Token JWT y datos públicos del usuario (login normal y con Google)."""
-    access_token = create_access_token(identity=str(usuario["_id"]))
+    # Token de acceso corto (fresco: recién inició sesión) y token de renovación revocable
+    access_token, refresh_token = crear_tokens(usuario["_id"], fresco=True)
 
     foto_perfil = usuario.get("foto_perfil")
     if isinstance(foto_perfil, bytes):
@@ -52,6 +55,7 @@ def respuesta_login(usuario):
 
     return {
         "access_token": access_token,
+        "refresh_token": refresh_token,
         "usuario": {
             "id": str(usuario["_id"]),
             "nombre": usuario.get("nombre"),

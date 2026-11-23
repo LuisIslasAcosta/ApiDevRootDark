@@ -35,18 +35,9 @@ def registrar_usuario(
         return jsonify({"mensaje": "Ese correo no existe: el dominio no recibe correos. Revisa que esté bien escrito."}), 400
 
     # Validar seguridad contraseña
-    if len(password) < 12:
-        return jsonify({"mensaje": "La contraseña debe tener al menos 12 caracteres"}), 400
-    if not re.search(r"[A-Z]", password):
-        return jsonify({"mensaje": "Debe incluir al menos una letra mayúscula"}), 400
-    if not re.search(r"[a-z]", password):
-        return jsonify({"mensaje": "Debe incluir al menos una letra minúscula"}), 400
-    if not re.search(r"[0-9]", password):
-        return jsonify({"mensaje": "Debe incluir al menos un número"}), 400
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        return jsonify({"mensaje": "Debe incluir al menos un carácter especial"}), 400
-    if "password" in password.lower() or "qwerty" in password.lower():
-        return jsonify({"mensaje": "Evita usar palabras comunes"}), 400
+    problema = problema_contrasena(password)
+    if problema:
+        return jsonify({"mensaje": problema}), 400
 
     # Verificar correo único
     if buscar_por_email(email):
@@ -120,6 +111,24 @@ def registrar_usuario(
                                 "Intenta reenviarlo desde la pantalla de inicio de sesión.")
         respuesta["correo_enviado"] = False
     return jsonify(respuesta), 201
+
+
+def problema_contrasena(password):
+    """Mensaje con lo que le falta a la contraseña, o None si es segura."""
+    password = password if isinstance(password, str) else ""
+    if len(password) < 12:
+        return "La contraseña debe tener al menos 12 caracteres"
+    if not re.search(r"[A-Z]", password):
+        return "Debe incluir al menos una letra mayúscula"
+    if not re.search(r"[a-z]", password):
+        return "Debe incluir al menos una letra minúscula"
+    if not re.search(r"[0-9]", password):
+        return "Debe incluir al menos un número"
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return "Debe incluir al menos un carácter especial"
+    if "password" in password.lower() or "qwerty" in password.lower():
+        return "Evita usar palabras comunes"
+    return None
 
 
 def actualizar_contraseña(usuario_id, nueva_contraseña):

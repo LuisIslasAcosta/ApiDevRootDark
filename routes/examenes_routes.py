@@ -6,6 +6,11 @@ from controllers.examenes import obtener_examenes, obtener_examenes_por_curso, s
 from config.config import examenes_collection, preguntas_collection
 import json
 from utils.excel_preguntas import leer_preguntas, ErrorExcel
+from config.config import cursos_collection
+from utils.seguridad import (
+    error, es_admin, exigir_acceso_curso, exigir_gestion_curso, sesion_requerida,
+    staff_requerido, texto, tiene_acceso_curso, usuario_sesion, variantes_id,
+)
 
 examen_bp = Blueprint("examen_bp", __name__)
 
@@ -19,16 +24,20 @@ def _id_flexible(valor):
 
 # ================= CREAR EXAMEN =================
 @examen_bp.route("/examenes", methods=["POST"])
+@staff_requerido
 def registrar():
 
-    titulo = (request.form.get("titulo") or "").strip()
-    curso_id = request.form.get("curso_id")
-    leccion_id = request.form.get("leccion_id")
-    nivel_id = request.form.get("nivel_id") or None
-    fecha = request.form.get("fecha")
+    titulo = texto(request.form.get("titulo"), 200)
+    curso_id = texto(request.form.get("curso_id"))
+    leccion_id = texto(request.form.get("leccion_id"))
+    nivel_id = texto(request.form.get("nivel_id")) or None
+    fecha = texto(request.form.get("fecha"), 40)
 
     if not curso_id or not leccion_id or not titulo or not fecha:
         return jsonify({"mensaje": "Curso, lección, título y fecha son obligatorios"}), 400
+    problema = exigir_gestion_curso(curso_id)
+    if problema:
+        return problema
 
     # Leer las preguntas ANTES de crear el examen (si el Excel trae errores, no se crea nada)
     preguntas = []
@@ -89,32 +98,65 @@ def registrar():
     }), 201
 
 
+def _visibles(examenes):
+    """Solo los exámenes de cursos a los que el usuario tiene acceso."""
+    usuario = usuario_sesion()
+    permitidos, resultado = {}, []
+    for ex in examenes:
+        curso = str(ex.get("curso_id", ""))
+        if curso not in permitidos:
+            permitidos[curso] = tiene_acceso_curso(usuario, curso)
+        if permitidos[curso]:
+            resultado.append(serializar_examen(ex))
+    return resultado
+
+
 # ================= LISTAR =================
 @examen_bp.route("/examenes", methods=["GET"])
+@staff_requerido
 def listar():
-    return jsonify(obtener_examenes()), 200
+    usuario = usuario_sesion()
+    if es_admin(usuario):
+        return jsonify(obtener_examenes()), 200
+    # El profesor solo ve los exámenes de sus cursos
+    mis_cursos = [v for c in cursos_collection.find({"profesor": {"$in": variantes_id(usuario["_id"])}}, {"_id": 1})
+                  for v in variantes_id(c["_id"])]
+    return jsonify([serializar_examen(ex) for ex in examenes_collection.find({"curso_id": {"$in": mis_cursos}})]), 200
 
 
 @examen_bp.route("/examenes/curso/<curso_id>", methods=["GET"])
+@sesion_requerida
 def listar_por_curso(curso_id):
+    problema = exigir_acceso_curso(curso_id)
+    if problema:
+        return problema
     return jsonify(obtener_examenes_por_curso(curso_id)), 200
 
 
 @examen_bp.route("/examenes/leccion/<leccion_id>", methods=["GET"])
+@sesion_requerida
 def listar_por_leccion(leccion_id):
-    examenes = examenes_collection.find({"leccion_id": _id_flexible(leccion_id)})
-    return jsonify([serializar_examen(ex) for ex in examenes]), 200
+    return jsonify(_visibles(examenes_collection.find({"leccion_id": _id_flexible(leccion_id)}))), 200
 
 
 @examen_bp.route("/examenes/nivel/<nivel_id>", methods=["GET"])
+@sesion_requerida
 def listar_por_nivel(nivel_id):
-    examenes = examenes_collection.find({"nivel_id": _id_flexible(nivel_id)})
-    return jsonify([serializar_examen(ex) for ex in examenes]), 200
+    return jsonify(_visibles(examenes_collection.find({"nivel_id": _id_flexible(nivel_id)}))), 200
 
 
 # ================= ELIMINAR =================
 @examen_bp.route("/examenes/<examen_id>", methods=["DELETE"])
+@staff_requerido
 def eliminar(examen_id):
+    if not ObjectId.is_valid(examen_id):
+        return error(400, "ID inválido")
+    examen = examenes_collection.find_one({"_id": ObjectId(examen_id)})
+    if not examen:
+        return error(404, "Examen no encontrado")
+    problema = exigir_gestion_curso(examen.get("curso_id"))
+    if problema:
+        return problema
     try:
         ok = eliminar_examen(examen_id)
         if ok:

@@ -171,3 +171,7 @@ def valid_user_data():
         "respuesta_seguridad": "firulais",
         "telefono": "7221234567",
     }
+
+# Las pruebas de integración cargan la app completa con MongoDB simulado en un proceso
+# aparte (ver tests/test_seguridad_api.py), así no chocan con los módulos ya importados.
+collect_ignore = ["integracion"]
